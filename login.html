@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>數學 RPG - 登入測試</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #user-info { margin-top: 20px; font-weight: bold; font-size: 18px; color: blue;}
+    </style>
+</head>
+<body>
+    <h2>數學 RPG 遊戲登入測試</h2>
+    <button id="login-btn">用 Google 帳號登入</button>
+    <div id="user-info"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // 這是從你的截圖中直接抓出來的專屬金鑰！
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjcI122qYfHW9ibPLz-XG8kleDq4r2pF8",
+            authDomain: "math-rpg-test.firebaseapp.com",
+            projectId: "math-rpg-test",
+            storageBucket: "math-rpg-test.firebasestorage.app",
+            messagingSenderId: "593199481365",
+            appId: "1:593199481365:web:7ad8656ff4aef6d0ca841c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        document.getElementById('login-btn').addEventListener('click', () => {
+            signInWithPopup(auth, provider).then((result) => {
+                document.getElementById('user-info').innerText = "登入成功！歡迎勇者：" + result.user.displayName;
+            }).catch((error) => {
+                alert("登入失敗，請檢查設定。錯誤訊息：" + error.message);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -2,27 +2,181 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數學 RPG - 存檔測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數學 RPG - 冒險者公會大廳</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        #user-info { margin-top: 20px; font-weight: bold; font-size: 18px; color: blue;}
-        #game-data { margin-top: 15px; font-size: 18px; color: green; font-weight: bold; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-color: #0f172a; 
+            --card-bg: #1e293b; 
+            --accent-main: #22d3ee; 
+            --accent-glow: rgba(34, 211, 238, 0.4);
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --border-color: #334155;
+            --success: #10b981;
+            --locked-bg: rgba(15, 23, 42, 0.9);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- 頂部導覽列 --- */
+        .top-bar {
+            width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.9);
+            border-bottom: 2px solid var(--accent-main);
+            box-shadow: 0 0 15px var(--accent-glow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .title { font-size: 1.8rem; font-weight: 900; color: var(--accent-main); letter-spacing: 2px; }
+
+        .player-status { display: flex; align-items: center; gap: 1rem; }
+        .user-info { display: none; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: bold; }
+        .coin-display { color: gold; background: rgba(0,0,0,0.5); padding: 0.3rem 0.8rem; border-radius: 15px; border: 1px solid #b8860b; }
+        
+        .auth-btn {
+            background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1.5rem;
+            border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .auth-btn:hover { background: #fff; box-shadow: 0 0 10px var(--accent-glow); transform: scale(1.05); }
+        .auth-btn.logout { background: #f43f5e; color: white; }
+
+        /* --- 大廳主要內容 --- */
+        .main-container {
+            width: 100%; max-width: 1000px; padding: 2rem; position: relative; flex: 1;
+        }
+
+        /* 未登入時的遮罩 */
+        .locked-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--locked-bg); backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50; border-radius: 1rem; text-align: center;
+        }
+        .locked-overlay h2 { color: var(--accent-main); font-size: 2rem; margin-bottom: 1rem; }
+        .locked-overlay p { color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2rem; }
+
+        /* 學期區域 (類似你截圖的 Tabs) */
+        .stage-title {
+            font-size: 1.5rem; color: #fff; border-left: 5px solid var(--success); padding-left: 10px; margin: 2rem 0 1rem 0;
+        }
+
+        /* 學習卡片網格 */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;
+        }
+
+        .semester-card {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 1rem; padding: 1.5rem; transition: all 0.3s;
+        }
+        .semester-card:hover { border-color: var(--accent-main); box-shadow: 0 10px 20px rgba(0,0,0,0.3); transform: translateY(-5px); }
+        
+        .semester-header { font-size: 1.3rem; font-weight: bold; color: var(--accent-main); margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; }
+        
+        .chapter-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        
+        .chapter-btn {
+            background: rgba(15, 23, 42, 0.6); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 0.8rem 1rem; border-radius: 0.5rem; text-align: left; cursor: pointer; transition: all 0.2s; font-size: 1rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chapter-btn:hover { background: rgba(34, 211, 238, 0.1); border-color: var(--accent-main); color: var(--accent-main); }
+        .chapter-btn::after { content: '進入任務 ➔'; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s; }
+        .chapter-btn:hover::after { opacity: 1; }
+
+        .disabled-card { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
-    <h2>數學 RPG 遊戲 - 裝備與金幣庫測試</h2>
-    <button id="login-btn">用 Google 帳號登入</button>
-    <div id="user-info"></div>
-    <div id="game-data"></div>
+
+    <header class="top-bar">
+        <div class="title">⚔️ 數學 RPG 學習中心</div>
+        <div class="player-status">
+            <div id="user-info" class="user-info">
+                <span id="player-name">勇者</span>
+                <span class="coin-display">💰 <span id="player-coins">0</span></span>
+            </div>
+            <button id="auth-btn" class="auth-btn">Google 登入連線</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        
+        <div id="locked-overlay" class="locked-overlay">
+            <h2>⛔ 存取權限不足</h2>
+            <p>請先使用 Google 帳號登入，以建立您的專屬角色與金庫。</p>
+            <button class="auth-btn" style="font-size: 1.2rem; padding: 1rem 2rem;" onclick="document.getElementById('auth-btn').click()">立即登入</button>
+        </div>
+
+        <h2 class="stage-title">🛡️ 國中數學任務區</h2>
+        <div class="grid-container">
+            
+            <div class="semester-card">
+                <div class="semester-header">國七上</div>
+                <div class="chapter-list">
+                    <button class="chapter-btn" onclick="window.location.href='1-1.html'">
+                        CH 1-1 負數與數線
+                    </button>
+                    <button class="chapter-btn">CH 1-2 整數的加減 (建置中)</button>
+                    <button class="chapter-btn">CH 1-3 整數的乘除 (建置中)</button>
+                </div>
+            </div>
+
+            <div class="semester-card">
+                <div class="semester-header">國七下</div>
+                <div class="chapter-list">
+                    <button class="chapter-btn">二元一次聯立方程式 (建置中)</button>
+                    <button class="chapter-btn">直角坐標與二元一次圖形 (建置中)</button>
+                </div>
+            </div>
+
+            <div class="semester-card">
+                <div class="semester-header">國八上</div>
+                <div class="chapter-list">
+                    <button class="chapter-btn">乘法公式與多項式 (建置中)</button>
+                    <button class="chapter-btn">平方根與畢氏定理 (建置中)</button>
+                </div>
+            </div>
+
+        </div>
+
+        <h2 class="stage-title" style="border-left-color: #64748b; margin-top: 3rem;">🌌 高中數學任務區 (尚未開放)</h2>
+        <div class="grid-container">
+            <div class="semester-card disabled-card">
+                <div class="semester-header" style="color: #64748b; border-color: #64748b;">高一上 (即將推出)</div>
+                <div class="chapter-list">
+                    <button class="chapter-btn" style="border-color: #334155;">數與式</button>
+                    <button class="chapter-btn" style="border-color: #334155;">直線與圓</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        // 載入資料庫專用工具
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // 你的專屬金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyBjcI122qYfHW9ibPLz-XG8kleDq4r2pF8",
             authDomain: "math-rpg-test.firebaseapp.com",
@@ -37,35 +191,48 @@
         const provider = new GoogleAuthProvider();
         const db = getFirestore(app);
 
-        document.getElementById('login-btn').addEventListener('click', () => {
-            signInWithPopup(auth, provider).then(async (result) => {
-                const user = result.user;
-                document.getElementById('user-info').innerText = "登入成功！歡迎勇者：" + user.displayName;
+        const authBtn = document.getElementById('auth-btn');
+        const userInfo = document.getElementById('user-info');
+        const lockedOverlay = document.getElementById('locked-overlay');
+        const playerNameEl = document.getElementById('player-name');
+        const playerCoinsEl = document.getElementById('player-coins');
 
-                // 尋找該名玩家的專屬資料夾
+        // 【核心功能】監聽玩家的登入狀態
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // --- 玩家已登入 ---
+                authBtn.innerText = '登出';
+                authBtn.classList.add('logout');
+                userInfo.style.display = 'flex';
+                playerNameEl.innerText = user.displayName;
+                lockedOverlay.style.display = 'none'; // 解鎖大廳！
+
+                // 去資料庫抓金幣
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
-
                 if (docSnap.exists()) {
-                    // 檔案存在：讀取並顯示資料
-                    const data = docSnap.data();
-                    document.getElementById('game-data').innerText = 
-                        `⚔️ 讀取存檔成功！目前等級：${data.level} | 經驗值：${data.exp} | 金幣：${data.coins}`;
+                    playerCoinsEl.innerText = docSnap.data().coins;
                 } else {
-                    // 檔案不存在：建立新存檔並贈送 100 金幣
-                    await setDoc(userDocRef, {
-                        name: user.displayName,
-                        email: user.email,
-                        level: 1,
-                        exp: 0,
-                        coins: 100
-                    });
-                    document.getElementById('game-data').innerText = 
-                        "🎉 發現新勇者！已為您建立專屬存檔，獲得新手禮包 100 金幣！";
+                    // 萬一是第一次登入的新手
+                    await setDoc(userDocRef, { name: user.displayName, email: user.email, level: 1, exp: 0, coins: 100 });
+                    playerCoinsEl.innerText = 100;
                 }
-            }).catch((error) => {
-                alert("登入失敗：" + error.message);
-            });
+            } else {
+                // --- 玩家未登入 ---
+                authBtn.innerText = 'Google 登入連線';
+                authBtn.classList.remove('logout');
+                userInfo.style.display = 'none';
+                lockedOverlay.style.display = 'flex'; // 鎖上大廳！
+            }
+        });
+
+        // 按鈕點擊事件：處理登入與登出
+        authBtn.addEventListener('click', () => {
+            if (auth.currentUser) {
+                signOut(auth).catch(error => console.error(error));
+            } else {
+                signInWithPopup(auth, provider).catch(error => alert("登入失敗：" + error.message));
+            }
         });
     </script>
 </body>

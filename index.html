@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數學 RPG - 冒險者公會大廳</title>
+    <title>數學 RPG - 冒險地圖</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
 
         :root {
             --bg-color: #0f172a; 
-            --card-bg: #1e293b; 
             --accent-main: #22d3ee; 
             --accent-glow: rgba(34, 211, 238, 0.4);
             --text-main: #f8fafc; 
-            --text-muted: #94a3b8; 
             --border-color: #334155;
-            --success: #10b981;
             --locked-bg: rgba(15, 23, 42, 0.9);
         }
 
@@ -29,20 +26,13 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: hidden; /* 防止鍵盤走路時畫面跟著捲動 */
         }
 
         /* --- 頂部導覽列 --- */
         .top-bar {
-            width: 100%;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(30, 41, 59, 0.9);
-            border-bottom: 2px solid var(--accent-main);
-            box-shadow: 0 0 15px var(--accent-glow);
-            position: sticky;
-            top: 0;
+            width: 100%; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(30, 41, 59, 0.9); border-bottom: 2px solid var(--accent-main); box-shadow: 0 0 15px var(--accent-glow);
             z-index: 100;
         }
 
@@ -52,124 +42,66 @@
         .user-info { display: none; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: bold; }
         .coin-display { color: gold; background: rgba(0,0,0,0.5); padding: 0.3rem 0.8rem; border-radius: 15px; border: 1px solid #b8860b; }
         
-        .auth-btn {
-            background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1.5rem;
-            border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s;
-        }
+        .auth-btn { background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1.5rem; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
         .auth-btn:hover { background: #fff; box-shadow: 0 0 10px var(--accent-glow); transform: scale(1.05); }
         .auth-btn.logout { background: #f43f5e; color: white; }
 
-        /* --- 大廳主要內容 --- */
-        .main-container {
-            width: 100%; max-width: 1000px; padding: 2rem; position: relative; flex: 1;
+        /* --- 遊戲地圖區 --- */
+        .game-container {
+            width: 100%; flex: 1; display: flex; justify-content: center; align-items: center; position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
         }
 
-        /* 未登入時的遮罩 */
+        /* 這是我們的畫布，地圖和人物都在這上面畫 */
+        canvas {
+            background-color: #064e3b; /* 森林草地的顏色 */
+            background-image: radial-gradient(#0f766e 10%, transparent 10%), radial-gradient(#0f766e 10%, transparent 10%);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            border: 4px solid var(--accent-main);
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* 未登入遮罩 */
         .locked-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: var(--locked-bg); backdrop-filter: blur(8px);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 50; border-radius: 1rem; text-align: center;
+            z-index: 50; text-align: center;
         }
         .locked-overlay h2 { color: var(--accent-main); font-size: 2rem; margin-bottom: 1rem; }
-        .locked-overlay p { color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2rem; }
-
-        /* 學期區域 (類似你截圖的 Tabs) */
-        .stage-title {
-            font-size: 1.5rem; color: #fff; border-left: 5px solid var(--success); padding-left: 10px; margin: 2rem 0 1rem 0;
-        }
-
-        /* 學習卡片網格 */
-        .grid-container {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;
-        }
-
-        .semester-card {
-            background: var(--card-bg); border: 1px solid var(--border-color);
-            border-radius: 1rem; padding: 1.5rem; transition: all 0.3s;
-        }
-        .semester-card:hover { border-color: var(--accent-main); box-shadow: 0 10px 20px rgba(0,0,0,0.3); transform: translateY(-5px); }
         
-        .semester-header { font-size: 1.3rem; font-weight: bold; color: var(--accent-main); margin-bottom: 1rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.5rem; }
-        
-        .chapter-list { display: flex; flex-direction: column; gap: 0.5rem; }
-        
-        .chapter-btn {
-            background: rgba(15, 23, 42, 0.6); color: var(--text-main); border: 1px solid var(--border-color);
-            padding: 0.8rem 1rem; border-radius: 0.5rem; text-align: left; cursor: pointer; transition: all 0.2s; font-size: 1rem;
-            display: flex; justify-content: space-between; align-items: center;
+        /* 操作說明 */
+        .controls-hint {
+            position: absolute; bottom: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px; color: #cbd5e1;
         }
-        .chapter-btn:hover { background: rgba(34, 211, 238, 0.1); border-color: var(--accent-main); color: var(--accent-main); }
-        .chapter-btn::after { content: '進入任務 ➔'; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s; }
-        .chapter-btn:hover::after { opacity: 1; }
-
-        .disabled-card { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <header class="top-bar">
-        <div class="title">⚔️ 數學 RPG 學習中心</div>
+        <div class="title">⚔️ 數學 RPG 冒險世界</div>
         <div class="player-status">
             <div id="user-info" class="user-info">
                 <span id="player-name">勇者</span>
                 <span class="coin-display">💰 <span id="player-coins">0</span></span>
             </div>
-            <button id="auth-btn" class="auth-btn">Google 登入連線</button>
+            <button id="auth-btn" class="auth-btn">Google 登入</button>
         </div>
     </header>
 
-    <main class="main-container">
+    <main class="game-container">
         
         <div id="locked-overlay" class="locked-overlay">
             <h2>⛔ 存取權限不足</h2>
-            <p>請先使用 Google 帳號登入，以建立您的專屬角色與金庫。</p>
-            <button class="auth-btn" style="font-size: 1.2rem; padding: 1rem 2rem;" onclick="document.getElementById('auth-btn').click()">立即登入</button>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">請先登入以喚醒您的勇者角色。</p>
+            <button class="auth-btn" style="font-size: 1.2rem; padding: 1rem 2rem;" onclick="document.getElementById('auth-btn').click()">喚醒角色</button>
         </div>
 
-        <h2 class="stage-title">🛡️ 國中數學任務區</h2>
-        <div class="grid-container">
-            
-            <div class="semester-card">
-                <div class="semester-header">國七上</div>
-                <div class="chapter-list">
-                    <button class="chapter-btn" onclick="window.location.href='1-1.html'">
-                        CH 1-1 負數與數線
-                    </button>
-                    <button class="chapter-btn">CH 1-2 整數的加減 (建置中)</button>
-                    <button class="chapter-btn">CH 1-3 整數的乘除 (建置中)</button>
-                </div>
-            </div>
-
-            <div class="semester-card">
-                <div class="semester-header">國七下</div>
-                <div class="chapter-list">
-                    <button class="chapter-btn">二元一次聯立方程式 (建置中)</button>
-                    <button class="chapter-btn">直角坐標與二元一次圖形 (建置中)</button>
-                </div>
-            </div>
-
-            <div class="semester-card">
-                <div class="semester-header">國八上</div>
-                <div class="chapter-list">
-                    <button class="chapter-btn">乘法公式與多項式 (建置中)</button>
-                    <button class="chapter-btn">平方根與畢氏定理 (建置中)</button>
-                </div>
-            </div>
-
-        </div>
-
-        <h2 class="stage-title" style="border-left-color: #64748b; margin-top: 3rem;">🌌 高中數學任務區 (尚未開放)</h2>
-        <div class="grid-container">
-            <div class="semester-card disabled-card">
-                <div class="semester-header" style="color: #64748b; border-color: #64748b;">高一上 (即將推出)</div>
-                <div class="chapter-list">
-                    <button class="chapter-btn" style="border-color: #334155;">數與式</button>
-                    <button class="chapter-btn" style="border-color: #334155;">直線與圓</button>
-                </div>
-            </div>
-        </div>
-
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div class="controls-hint">⌨️ 使用鍵盤 <b>W A S D</b> 或 <b>方向鍵</b> 移動勇者</div>
     </main>
 
     <script type="module">
@@ -191,49 +123,156 @@
         const provider = new GoogleAuthProvider();
         const db = getFirestore(app);
 
-        const authBtn = document.getElementById('auth-btn');
-        const userInfo = document.getElementById('user-info');
-        const lockedOverlay = document.getElementById('locked-overlay');
-        const playerNameEl = document.getElementById('player-name');
-        const playerCoinsEl = document.getElementById('player-coins');
+        let isLoggedIn = false;
 
-        // 【核心功能】監聽玩家的登入狀態
+        // --- 登入狀態監聽 ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // --- 玩家已登入 ---
-                authBtn.innerText = '登出';
-                authBtn.classList.add('logout');
-                userInfo.style.display = 'flex';
-                playerNameEl.innerText = user.displayName;
-                lockedOverlay.style.display = 'none'; // 解鎖大廳！
+                isLoggedIn = true;
+                document.getElementById('auth-btn').innerText = '登出';
+                document.getElementById('auth-btn').classList.add('logout');
+                document.getElementById('user-info').style.display = 'flex';
+                document.getElementById('player-name').innerText = user.displayName;
+                document.getElementById('locked-overlay').style.display = 'none';
 
-                // 去資料庫抓金幣
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
                 if (docSnap.exists()) {
-                    playerCoinsEl.innerText = docSnap.data().coins;
-                } else {
-                    // 萬一是第一次登入的新手
-                    await setDoc(userDocRef, { name: user.displayName, email: user.email, level: 1, exp: 0, coins: 100 });
-                    playerCoinsEl.innerText = 100;
+                    document.getElementById('player-coins').innerText = docSnap.data().coins;
                 }
             } else {
-                // --- 玩家未登入 ---
-                authBtn.innerText = 'Google 登入連線';
-                authBtn.classList.remove('logout');
-                userInfo.style.display = 'none';
-                lockedOverlay.style.display = 'flex'; // 鎖上大廳！
+                isLoggedIn = false;
+                document.getElementById('auth-btn').innerText = 'Google 登入';
+                document.getElementById('auth-btn').classList.remove('logout');
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('locked-overlay').style.display = 'flex';
             }
         });
 
-        // 按鈕點擊事件：處理登入與登出
-        authBtn.addEventListener('click', () => {
-            if (auth.currentUser) {
-                signOut(auth).catch(error => console.error(error));
-            } else {
-                signInWithPopup(auth, provider).catch(error => alert("登入失敗：" + error.message));
-            }
+        document.getElementById('auth-btn').addEventListener('click', () => {
+            if (auth.currentUser) signOut(auth);
+            else signInWithPopup(auth, provider);
         });
+
+        // ==========================================
+        // 🎮 遊戲引擎核心 (Game Engine)
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1. 定義勇者 (Player)
+        const player = {
+            x: 50,
+            y: 250,
+            size: 40,
+            speed: 4,
+            icon: '🧙‍♂️'
+        };
+
+        // 2. 定義怪物與關卡 (Enemies/Stages)
+        const enemies = [
+            { id: '1-1', x: 600, y: 150, size: 45, icon: '👾', title: 'CH 1-1', url: '1-1.html' },
+            { id: '1-2', x: 400, y: 350, size: 45, icon: '👺', title: 'CH 1-2', url: '#' }, // 尚未建置的關卡
+            { id: '1-3', x: 700, y: 400, size: 45, icon: '🐉', title: 'Boss', url: '#' }
+        ];
+
+        // 3. 監聽鍵盤按鍵
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+
+        window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+        // 4. 碰撞偵測邏輯 (判斷兩個物件有沒有重疊)
+        function checkCollision(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + rect2.size &&
+                rect1.x + rect1.size > rect2.x &&
+                rect1.y < rect2.y + rect2.size &&
+                rect1.y + rect1.size > rect2.y
+            );
+        }
+
+        // 5. 遊戲狀態更新邏輯
+        function update() {
+            if (!isLoggedIn) return; // 沒登入不能移動
+
+            // 根據按鍵移動勇者
+            if (keys.w || keys.ArrowUp) player.y -= player.speed;
+            if (keys.s || keys.ArrowDown) player.y += player.speed;
+            if (keys.a || keys.ArrowLeft) player.x -= player.speed;
+            if (keys.d || keys.ArrowRight) player.x += player.speed;
+
+            // 邊界限制 (不讓勇者走出畫面)
+            if (player.x < 0) player.x = 0;
+            if (player.y < 0) player.y = 0;
+            if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
+            if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
+
+            // 檢查是否撞到怪物！
+            for (let i = 0; i < enemies.length; i++) {
+                let enemy = enemies[i];
+                if (checkCollision(player, enemy)) {
+                    // 撞到了！觸發戰鬥
+                    keys.w = keys.a = keys.s = keys.d = keys.ArrowUp = keys.ArrowLeft = keys.ArrowDown = keys.ArrowRight = false; // 煞車
+                    
+                    if (enemy.url !== '#') {
+                        // 彈出遇敵提示，然後跳轉到戰鬥畫面 (1-1.html)
+                        alert(`⚔️ 遭遇野生史萊姆！進入戰鬥：${enemy.title}`);
+                        window.location.href = enemy.url;
+                    } else {
+                        // 尚未建置的關卡把玩家彈開一點點
+                        alert(`🚧 此區域 (${enemy.title}) 尚未開放！`);
+                        player.x -= 50; 
+                    }
+                }
+            }
+        }
+
+        // 6. 畫面繪製邏輯
+        function draw() {
+            // 清除上一幀的畫面
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 畫怪物 (含標題)
+            ctx.font = "40px Arial";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            
+            enemies.forEach(enemy => {
+                // 畫怪物 Emoji
+                ctx.fillText(enemy.icon, enemy.x, enemy.y);
+                
+                // 畫怪物頭上的章節名稱
+                ctx.font = "16px 'Noto Sans TC'";
+                ctx.fillStyle = "white";
+                ctx.fillText(enemy.title, enemy.x - 5, enemy.y - 20);
+                
+                // 怪物血條/裝飾 (增加 RPG 氛圍)
+                ctx.fillStyle = "red";
+                ctx.fillRect(enemy.x, enemy.y - 5, 40, 5);
+                ctx.font = "40px Arial"; // 恢復 emoji 字體大小
+            });
+
+            // 畫勇者
+            if (isLoggedIn) {
+                ctx.fillText(player.icon, player.x, player.y);
+                // 畫勇者頭上的名字
+                ctx.font = "bold 16px 'Noto Sans TC'";
+                ctx.fillStyle = "#22d3ee"; // 青藍色
+                let currentName = document.getElementById('player-name').innerText;
+                ctx.fillText(currentName, player.x - 10, player.y - 20);
+            }
+        }
+
+        // 7. 遊戲主迴圈 (每秒跑 60 次)
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop); // 請求瀏覽器畫下一幀
+        }
+
+        // 啟動遊戲！
+        gameLoop();
     </script>
 </body>
 </html>

@@ -2,23 +2,28 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數學 RPG - 登入測試</title>
+    <title>數學 RPG - 登入與存檔測試</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding-top: 50px; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
         #user-info { margin-top: 20px; font-weight: bold; font-size: 18px; color: blue;}
+        /* 新增一個顯示遊戲數據的樣式 */
+        #game-data { margin-top: 15px; font-size: 18px; color: green; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h2>數學 RPG 遊戲登入測試</h2>
+    <h2>數學 RPG 遊戲 - 登入與資料庫測試</h2>
     <button id="login-btn">用 Google 帳號登入</button>
     <div id="user-info"></div>
-
-    <script type="module">
+    <div id="game-data"></div> <script type="module">
+        // 1. 引入原本的驗證功能
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        
+        // 2. 【全新加入】引入 Firestore 資料庫功能
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // 這是從你的截圖中直接抓出來的專屬金鑰！
+        // 你的專屬金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyBjcI122qYfHW9ibPLz-XG8kleDq4r2pF8",
             authDomain: "math-rpg-test.firebaseapp.com",
@@ -31,12 +36,42 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
+        
+        // 3. 啟動資料庫
+        const db = getFirestore(app);
 
         document.getElementById('login-btn').addEventListener('click', () => {
-            signInWithPopup(auth, provider).then((result) => {
-                document.getElementById('user-info').innerText = "登入成功！歡迎勇者：" + result.user.displayName;
+            signInWithPopup(auth, provider).then(async (result) => {
+                const user = result.user;
+                document.getElementById('user-info').innerText = "登入成功！歡迎勇者：" + user.displayName;
+
+                // 【資料庫存取邏輯開始】
+                // 設定我們要找的檔案路徑：在 "users" 這個櫃子裡，找名為 user.uid 的專屬檔案夾
+                const userDocRef = doc(db, "users", user.uid);
+                
+                // 去資料庫讀取看看
+                const docSnap = await getDoc(userDocRef);
+
+                if (docSnap.exists()) {
+                    // 情況 A：檔案存在（老玩家），把資料抓出來顯示
+                    const data = docSnap.data();
+                    document.getElementById('game-data').innerText = 
+                        `⚔️ 讀取存檔成功！目前等級：${data.level} | 經驗值：${data.exp} | 金幣：${data.coins}`;
+                } else {
+                    // 情況 B：檔案不存在（新玩家），幫他寫入第一筆資料
+                    await setDoc(userDocRef, {
+                        name: user.displayName,
+                        email: user.email,
+                        level: 1,
+                        exp: 0,
+                        coins: 100 // 新手大放送 100 金幣
+                    });
+                    document.getElementById('game-data').innerText = 
+                        "🎉 發現新勇者！已為您建立專屬存檔，獲得新手禮包 100 金幣！";
+                }
+
             }).catch((error) => {
-                alert("登入失敗，請檢查設定。錯誤訊息：" + error.message);
+                alert("登入失敗：" + error.message);
             });
         });
     </script>

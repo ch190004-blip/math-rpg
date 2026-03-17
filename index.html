@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>數學 RPG - 冒險地圖</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -22,34 +22,35 @@
             font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow: hidden; 
+            overflow: hidden; /* 鎖死畫面，防止手機上下捲動 */
+            touch-action: none; /* 徹底封殺瀏覽器的觸控手勢 (如下拉更新) */
         }
 
         /* --- 頂部導覽列 --- */
         .top-bar {
             width: 100%; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
             background: rgba(30, 41, 59, 0.9); border-bottom: 2px solid var(--accent-main); box-shadow: 0 0 15px var(--accent-glow);
-            z-index: 100;
+            z-index: 100; flex-shrink: 0;
         }
 
-        .title { font-size: 1.8rem; font-weight: 900; color: var(--accent-main); letter-spacing: 2px; }
+        .title { font-size: 1.5rem; font-weight: 900; color: var(--accent-main); letter-spacing: 2px; }
 
         .player-status { display: flex; align-items: center; gap: 1rem; }
         .user-info { display: none; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: bold; }
         .coin-display { color: gold; background: rgba(0,0,0,0.5); padding: 0.3rem 0.8rem; border-radius: 15px; border: 1px solid #b8860b; }
         
-        .auth-btn { background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1.5rem; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
-        .auth-btn:hover { background: #fff; box-shadow: 0 0 10px var(--accent-glow); transform: scale(1.05); }
+        .auth-btn { background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
         .auth-btn.logout { background: #f43f5e; color: white; }
 
         /* --- 遊戲地圖區 --- */
         .game-container {
-            width: 100%; flex: 1; display: flex; justify-content: center; align-items: center; position: relative;
+            width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            padding: 10px;
         }
 
         canvas {
@@ -60,9 +61,11 @@
             border: 4px solid var(--accent-main);
             border-radius: 10px;
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            max-width: 100%; /* 確保在手機上不會破版 */
+            height: auto;
+            aspect-ratio: 8/5; /* 保持地圖比例 */
         }
 
-        /* 未登入遮罩 */
         .locked-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: var(--locked-bg); backdrop-filter: blur(8px);
@@ -75,31 +78,13 @@
             position: absolute; bottom: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px; color: #cbd5e1;
         }
 
-        /* ==========================================
-           🌟 新增：戰鬥轉場特效 CSS
-           ========================================== */
+        /* 戰鬥轉場特效 */
         .battle-transition {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #000;
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none; /* 平常隱形且不擋住滑鼠點擊 */
-            display: flex; justify-content: center; align-items: center;
-            text-align: center;
-            color: #f43f5e;
-            font-size: 2.5rem;
-            font-weight: 900;
-            text-shadow: 0 0 20px rgba(244, 63, 94, 0.8);
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #000; z-index: 9999;
+            opacity: 0; pointer-events: none; display: flex; justify-content: center; align-items: center;
+            text-align: center; color: #f43f5e; font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 20px rgba(244, 63, 94, 0.8);
         }
-
-        /* 當遇敵時，觸發這個 class */
-        .battle-transition.active {
-            opacity: 1;
-            pointer-events: all;
-            animation: encounterFlash 1.2s ease-in-out forwards; /* 播放閃爍特效 */
-        }
-
-        /* 定義經典的 RPG 遇敵閃爍動畫 */
+        .battle-transition.active { opacity: 1; pointer-events: all; animation: encounterFlash 1.2s ease-in-out forwards; }
         @keyframes encounterFlash {
             0% { background-color: transparent; opacity: 0; }
             10% { background-color: white; opacity: 1; }
@@ -108,12 +93,51 @@
             40% { background-color: black; }
             100% { background-color: black; opacity: 1; }
         }
+
+        /* ==========================================
+           🌟 新增：手機虛擬搖桿 (Virtual D-Pad)
+           ========================================== */
+        .dpad-container {
+            display: none; /* 預設在電腦上隱藏 */
+            flex-direction: column; align-items: center; gap: 10px;
+            margin-top: 20px;
+            user-select: none; /* 防止連按時反白文字 */
+        }
+        .dpad-row { display: flex; gap: 15px; }
+        
+        .dpad-btn {
+            width: 60px; height: 60px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid var(--accent-main);
+            border-radius: 50%;
+            font-size: 24px; color: var(--accent-main);
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            /* 最關鍵的一行：防止按鈕觸發手機預設手勢 */
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 當手指按下去時的發光效果 */
+        .dpad-btn.active {
+            background: var(--accent-main);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: scale(0.95);
+        }
+
+        /* 當螢幕寬度小於 850px (平板/手機) 時，顯示虛擬搖桿並隱藏鍵盤提示 */
+        @media (max-width: 850px) {
+            .dpad-container { display: flex; }
+            .controls-hint { display: none; }
+            .title { font-size: 1.2rem; }
+            .user-info span:first-child { display: none; } /* 手機太窄，隱藏名字只留金幣 */
+        }
     </style>
 </head>
 <body>
 
     <header class="top-bar">
-        <div class="title">⚔️ 數學 RPG 冒險世界</div>
+        <div class="title">⚔️ 冒險大廳</div>
         <div class="player-status">
             <div id="user-info" class="user-info">
                 <span id="player-name">勇者</span>
@@ -126,12 +150,21 @@
     <main class="game-container">
         <div id="locked-overlay" class="locked-overlay">
             <h2>⛔ 存取權限不足</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">請先登入以喚醒您的勇者角色。</p>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">請先登入以喚醒您的角色。</p>
             <button class="auth-btn" style="font-size: 1.2rem; padding: 1rem 2rem;" onclick="document.getElementById('auth-btn').click()">喚醒角色</button>
         </div>
 
         <canvas id="gameCanvas" width="800" height="500"></canvas>
         <div class="controls-hint">⌨️ 使用鍵盤 <b>W A S D</b> 或 <b>方向鍵</b> 移動勇者</div>
+
+        <div class="dpad-container">
+            <div class="dpad-btn" id="btn-up">⬆️</div>
+            <div class="dpad-row">
+                <div class="dpad-btn" id="btn-left">⬅️</div>
+                <div class="dpad-btn" id="btn-down">⬇️</div>
+                <div class="dpad-btn" id="btn-right">➡️</div>
+            </div>
+        </div>
     </main>
 
     <div id="battle-transition" class="battle-transition"></div>
@@ -156,7 +189,7 @@
         const db = getFirestore(app);
 
         let isLoggedIn = false;
-        let isTransitioning = false; // 🌟 新增：防止重複觸發轉場的開關
+        let isTransitioning = false; 
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -174,7 +207,7 @@
                 }
             } else {
                 isLoggedIn = false;
-                document.getElementById('auth-btn').innerText = 'Google 登入';
+                document.getElementById('auth-btn').innerText = '登入';
                 document.getElementById('auth-btn').classList.remove('logout');
                 document.getElementById('user-info').style.display = 'none';
                 document.getElementById('locked-overlay').style.display = 'flex';
@@ -201,8 +234,44 @@
 
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
 
+        // 電腦鍵盤監聽
         window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+        // ==========================================
+        // 🌟 新增：綁定虛擬搖桿的手指觸控事件
+        // ==========================================
+        function setupDpadBtn(btnId, keyName) {
+            const btn = document.getElementById(btnId);
+            
+            // 按下或手指摸到時
+            const pressDown = (e) => {
+                e.preventDefault(); // 阻止瀏覽器預設行為
+                keys[keyName] = true;
+                btn.classList.add('active');
+            };
+            
+            // 放開或手指離開時
+            const releaseUp = (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+                btn.classList.remove('active');
+            };
+
+            // 支援滑鼠 (方便在電腦上測試縮小視窗)
+            btn.addEventListener('mousedown', pressDown);
+            btn.addEventListener('mouseup', releaseUp);
+            btn.addEventListener('mouseleave', releaseUp);
+            // 支援手機觸控
+            btn.addEventListener('touchstart', pressDown, {passive: false});
+            btn.addEventListener('touchend', releaseUp, {passive: false});
+            btn.addEventListener('touchcancel', releaseUp, {passive: false});
+        }
+
+        setupDpadBtn('btn-up', 'ArrowUp');
+        setupDpadBtn('btn-down', 'ArrowDown');
+        setupDpadBtn('btn-left', 'ArrowLeft');
+        setupDpadBtn('btn-right', 'ArrowRight');
 
         function checkCollision(rect1, rect2) {
             return (
@@ -214,7 +283,6 @@
         }
 
         function update() {
-            // 🌟 條件升級：如果沒登入，或是「正在播放轉場動畫」，都不能移動
             if (!isLoggedIn || isTransitioning) return; 
 
             if (keys.w || keys.ArrowUp) player.y -= player.speed;
@@ -230,27 +298,20 @@
             for (let i = 0; i < enemies.length; i++) {
                 let enemy = enemies[i];
                 if (checkCollision(player, enemy)) {
-                    keys.w = keys.a = keys.s = keys.d = keys.ArrowUp = keys.ArrowLeft = keys.ArrowDown = keys.ArrowRight = false; // 煞車
+                    keys.w = keys.a = keys.s = keys.d = keys.ArrowUp = keys.ArrowLeft = keys.ArrowDown = keys.ArrowRight = false; 
                     
                     if (enemy.url !== '#') {
-                        // ==========================================
-                        // 🌟 新增：播放轉場特效取代原本的 alert
-                        // ==========================================
-                        isTransitioning = true; // 鎖住移動，防止連續觸發
+                        isTransitioning = true; 
                         
                         const transitionEl = document.getElementById('battle-transition');
                         transitionEl.innerHTML = `<div>⚔️ 遭遇野生怪物！<br><span style="font-size: 1.8rem; color: #22d3ee;">進入戰鬥：${enemy.title}</span></div>`;
-                        transitionEl.classList.add('active'); // 觸發 CSS 動畫
+                        transitionEl.classList.add('active'); 
                         
-                        // 等待 1.2 秒（讓動畫播完）再跳轉網頁
-                        setTimeout(() => {
-                            window.location.href = enemy.url;
-                        }, 1200);
+                        setTimeout(() => { window.location.href = enemy.url; }, 1200);
 
                     } else {
-                        // 尚未建置的關卡，改成用不會卡住畫面的文字提示，並彈開
-                        alert(`🚧 此區域 (${enemy.title}) 尚未開放！`);
-                        player.x -= 50; 
+                        // 尚未開放的關卡，改成在畫布上顯示提示，避免 alert 中斷體驗
+                        player.x -= 30; // 輕微彈開
                     }
                 }
             }

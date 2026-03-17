@@ -26,7 +26,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow: hidden; /* 防止鍵盤走路時畫面跟著捲動 */
+            overflow: hidden; 
         }
 
         /* --- 頂部導覽列 --- */
@@ -52,9 +52,8 @@
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
         }
 
-        /* 這是我們的畫布，地圖和人物都在這上面畫 */
         canvas {
-            background-color: #064e3b; /* 森林草地的顏色 */
+            background-color: #064e3b; 
             background-image: radial-gradient(#0f766e 10%, transparent 10%), radial-gradient(#0f766e 10%, transparent 10%);
             background-size: 40px 40px;
             background-position: 0 0, 20px 20px;
@@ -72,9 +71,42 @@
         }
         .locked-overlay h2 { color: var(--accent-main); font-size: 2rem; margin-bottom: 1rem; }
         
-        /* 操作說明 */
         .controls-hint {
             position: absolute; bottom: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px; color: #cbd5e1;
+        }
+
+        /* ==========================================
+           🌟 新增：戰鬥轉場特效 CSS
+           ========================================== */
+        .battle-transition {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #000;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none; /* 平常隱形且不擋住滑鼠點擊 */
+            display: flex; justify-content: center; align-items: center;
+            text-align: center;
+            color: #f43f5e;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(244, 63, 94, 0.8);
+        }
+
+        /* 當遇敵時，觸發這個 class */
+        .battle-transition.active {
+            opacity: 1;
+            pointer-events: all;
+            animation: encounterFlash 1.2s ease-in-out forwards; /* 播放閃爍特效 */
+        }
+
+        /* 定義經典的 RPG 遇敵閃爍動畫 */
+        @keyframes encounterFlash {
+            0% { background-color: transparent; opacity: 0; }
+            10% { background-color: white; opacity: 1; }
+            20% { background-color: black; }
+            30% { background-color: white; }
+            40% { background-color: black; }
+            100% { background-color: black; opacity: 1; }
         }
     </style>
 </head>
@@ -92,7 +124,6 @@
     </header>
 
     <main class="game-container">
-        
         <div id="locked-overlay" class="locked-overlay">
             <h2>⛔ 存取權限不足</h2>
             <p style="color: #94a3b8; margin-bottom: 2rem;">請先登入以喚醒您的勇者角色。</p>
@@ -100,9 +131,10 @@
         </div>
 
         <canvas id="gameCanvas" width="800" height="500"></canvas>
-        
         <div class="controls-hint">⌨️ 使用鍵盤 <b>W A S D</b> 或 <b>方向鍵</b> 移動勇者</div>
     </main>
+
+    <div id="battle-transition" class="battle-transition"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -124,8 +156,8 @@
         const db = getFirestore(app);
 
         let isLoggedIn = false;
+        let isTransitioning = false; // 🌟 新增：防止重複觸發轉場的開關
 
-        // --- 登入狀態監聽 ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 isLoggedIn = true;
@@ -155,34 +187,23 @@
         });
 
         // ==========================================
-        // 🎮 遊戲引擎核心 (Game Engine)
+        // 🎮 遊戲引擎核心
         // ==========================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 1. 定義勇者 (Player)
-        const player = {
-            x: 50,
-            y: 250,
-            size: 40,
-            speed: 4,
-            icon: '🧙‍♂️'
-        };
-
-        // 2. 定義怪物與關卡 (Enemies/Stages)
+        const player = { x: 50, y: 250, size: 40, speed: 4, icon: '🧙‍♂️' };
         const enemies = [
             { id: '1-1', x: 600, y: 150, size: 45, icon: '👾', title: 'CH 1-1', url: '1-1.html' },
-            { id: '1-2', x: 400, y: 350, size: 45, icon: '👺', title: 'CH 1-2', url: '#' }, // 尚未建置的關卡
+            { id: '1-2', x: 400, y: 350, size: 45, icon: '👺', title: 'CH 1-2', url: '#' }, 
             { id: '1-3', x: 700, y: 400, size: 45, icon: '🐉', title: 'Boss', url: '#' }
         ];
 
-        // 3. 監聽鍵盤按鍵
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
 
         window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
-        // 4. 碰撞偵測邏輯 (判斷兩個物件有沒有重疊)
         function checkCollision(rect1, rect2) {
             return (
                 rect1.x < rect2.x + rect2.size &&
@@ -192,35 +213,42 @@
             );
         }
 
-        // 5. 遊戲狀態更新邏輯
         function update() {
-            if (!isLoggedIn) return; // 沒登入不能移動
+            // 🌟 條件升級：如果沒登入，或是「正在播放轉場動畫」，都不能移動
+            if (!isLoggedIn || isTransitioning) return; 
 
-            // 根據按鍵移動勇者
             if (keys.w || keys.ArrowUp) player.y -= player.speed;
             if (keys.s || keys.ArrowDown) player.y += player.speed;
             if (keys.a || keys.ArrowLeft) player.x -= player.speed;
             if (keys.d || keys.ArrowRight) player.x += player.speed;
 
-            // 邊界限制 (不讓勇者走出畫面)
             if (player.x < 0) player.x = 0;
             if (player.y < 0) player.y = 0;
             if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
             if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
 
-            // 檢查是否撞到怪物！
             for (let i = 0; i < enemies.length; i++) {
                 let enemy = enemies[i];
                 if (checkCollision(player, enemy)) {
-                    // 撞到了！觸發戰鬥
                     keys.w = keys.a = keys.s = keys.d = keys.ArrowUp = keys.ArrowLeft = keys.ArrowDown = keys.ArrowRight = false; // 煞車
                     
                     if (enemy.url !== '#') {
-                        // 彈出遇敵提示，然後跳轉到戰鬥畫面 (1-1.html)
-                        alert(`⚔️ 遭遇野生史萊姆！進入戰鬥：${enemy.title}`);
-                        window.location.href = enemy.url;
+                        // ==========================================
+                        // 🌟 新增：播放轉場特效取代原本的 alert
+                        // ==========================================
+                        isTransitioning = true; // 鎖住移動，防止連續觸發
+                        
+                        const transitionEl = document.getElementById('battle-transition');
+                        transitionEl.innerHTML = `<div>⚔️ 遭遇野生怪物！<br><span style="font-size: 1.8rem; color: #22d3ee;">進入戰鬥：${enemy.title}</span></div>`;
+                        transitionEl.classList.add('active'); // 觸發 CSS 動畫
+                        
+                        // 等待 1.2 秒（讓動畫播完）再跳轉網頁
+                        setTimeout(() => {
+                            window.location.href = enemy.url;
+                        }, 1200);
+
                     } else {
-                        // 尚未建置的關卡把玩家彈開一點點
+                        // 尚未建置的關卡，改成用不會卡住畫面的文字提示，並彈開
                         alert(`🚧 此區域 (${enemy.title}) 尚未開放！`);
                         player.x -= 50; 
                     }
@@ -228,50 +256,37 @@
             }
         }
 
-        // 6. 畫面繪製邏輯
         function draw() {
-            // 清除上一幀的畫面
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 畫怪物 (含標題)
             ctx.font = "40px Arial";
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
             
             enemies.forEach(enemy => {
-                // 畫怪物 Emoji
                 ctx.fillText(enemy.icon, enemy.x, enemy.y);
-                
-                // 畫怪物頭上的章節名稱
                 ctx.font = "16px 'Noto Sans TC'";
                 ctx.fillStyle = "white";
                 ctx.fillText(enemy.title, enemy.x - 5, enemy.y - 20);
-                
-                // 怪物血條/裝飾 (增加 RPG 氛圍)
                 ctx.fillStyle = "red";
                 ctx.fillRect(enemy.x, enemy.y - 5, 40, 5);
-                ctx.font = "40px Arial"; // 恢復 emoji 字體大小
+                ctx.font = "40px Arial"; 
             });
 
-            // 畫勇者
             if (isLoggedIn) {
                 ctx.fillText(player.icon, player.x, player.y);
-                // 畫勇者頭上的名字
                 ctx.font = "bold 16px 'Noto Sans TC'";
-                ctx.fillStyle = "#22d3ee"; // 青藍色
+                ctx.fillStyle = "#22d3ee"; 
                 let currentName = document.getElementById('player-name').innerText;
                 ctx.fillText(currentName, player.x - 10, player.y - 20);
             }
         }
 
-        // 7. 遊戲主迴圈 (每秒跑 60 次)
         function gameLoop() {
             update();
             draw();
-            requestAnimationFrame(gameLoop); // 請求瀏覽器畫下一幀
+            requestAnimationFrame(gameLoop);
         }
 
-        // 啟動遊戲！
         gameLoop();
     </script>
 </body>

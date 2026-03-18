@@ -3,333 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學 RPG - 冒險大世界</title>
+    <title>數學 RPG - Phaser 引擎測試</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-
-        :root {
-            --bg-color: #0f172a; --accent-main: #22d3ee; --accent-glow: rgba(34, 211, 238, 0.4);
-            --text-main: #f8fafc; --locked-bg: rgba(15, 23, 42, 0.9);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
-            font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-main);
-            height: 100vh; display: flex; flex-direction: column; align-items: center;
-            overflow: hidden; touch-action: none; 
+            margin: 0; padding: 0;
+            background-color: #0f172a; 
+            color: white; font-family: sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
         }
-
-        /* 頂部導覽列 */
-        .top-bar {
-            width: 100%; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
-            background: rgba(30, 41, 59, 0.9); border-bottom: 2px solid var(--accent-main); box-shadow: 0 0 15px var(--accent-glow);
-            z-index: 100; flex-shrink: 0;
-        }
-
-        .title { font-size: 1.5rem; font-weight: 900; color: var(--accent-main); letter-spacing: 2px; }
-
-        .player-status { display: flex; align-items: center; gap: 1rem; }
-        .user-info { display: none; align-items: center; gap: 15px; font-size: 1.1rem; font-weight: bold; }
-        .coin-display { color: gold; background: rgba(0,0,0,0.5); padding: 0.3rem 0.8rem; border-radius: 15px; border: 1px solid #b8860b; }
-        
-        .auth-btn { background: var(--accent-main); color: #000; border: none; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
-        .auth-btn.logout { background: #f43f5e; color: white; }
-
-        /* 遊戲地圖區 */
-        .game-container {
-            width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
-            background: #0f172a; padding: 10px;
-        }
-
-        /* 畫布樣式 */
-        canvas {
-            background-color: #064e3b; 
-            /* 畫布上的網格背景，幫助感受移動 */
-            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-            background-size: 50px 50px;
-            border: 4px solid var(--accent-main); border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            max-width: 100%; height: auto; aspect-ratio: 8/5; 
-        }
-
-        .locked-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--locked-bg); backdrop-filter: blur(8px);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; text-align: center;
-        }
-        .locked-overlay h2 { color: var(--accent-main); font-size: 2rem; margin-bottom: 1rem; }
-        
-        .controls-hint { position: absolute; bottom: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px; color: #cbd5e1; pointer-events: none;}
-
-        /* 戰鬥轉場特效 (完全取代 alert) */
-        .battle-transition {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #000; z-index: 9999;
-            opacity: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            text-align: center; color: #f43f5e; font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 20px rgba(244, 63, 94, 0.8);
-        }
-        .battle-transition.active { opacity: 1; pointer-events: all; animation: encounterFlash 1.2s ease-in-out forwards; }
-        .transition-sub { font-size: 1.5rem; color: #22d3ee; margin-top: 1rem; text-shadow: none; }
-        
-        @keyframes encounterFlash {
-            0% { background-color: transparent; opacity: 0; transform: scale(1); }
-            10% { background-color: white; opacity: 1; transform: scale(1.05); }
-            20% { background-color: black; transform: scale(1); }
-            30% { background-color: white; }
-            40% { background-color: black; }
-            100% { background-color: black; opacity: 1; }
-        }
-
-        /* 手機虛擬搖桿 */
-        .dpad-container { display: none; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; user-select: none; }
-        .dpad-row { display: flex; gap: 15px; }
-        .dpad-btn {
-            width: 60px; height: 60px; background: rgba(15, 23, 42, 0.8); border: 2px solid var(--accent-main); border-radius: 50%;
-            font-size: 24px; color: var(--accent-main); display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            touch-action: none; -webkit-tap-highlight-color: transparent;
-        }
-        .dpad-btn.active { background: var(--accent-main); color: #000; box-shadow: 0 0 15px var(--accent-glow); transform: scale(0.95); }
-
-        @media (max-width: 850px) {
-            .dpad-container { display: flex; }
-            .controls-hint { display: none; }
-            .title { font-size: 1.2rem; }
-            /* 修復：只隱藏名字，保留金幣顯示 */
-            #player-name { display: none; } 
+        h2 { color: #22d3ee; }
+        /* 遊戲畫布的外框 */
+        #game-container {
+            border: 4px solid #22d3ee; border-radius: 10px; box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); overflow: hidden;
         }
     </style>
 </head>
 <body>
 
-    <header class="top-bar">
-        <div class="title">🌍 數學 RPG 大世界</div>
-        <div class="player-status">
-            <div id="user-info" class="user-info">
-                <span id="player-name">勇者</span>
-                <span class="coin-display">💰 <span id="player-coins">0</span></span>
-            </div>
-            <button id="auth-btn" class="auth-btn">Google 登入</button>
-        </div>
-    </header>
+    <h2>⚔️ Phaser 遊戲引擎測試</h2>
+    <p>請用鍵盤 W, A, S, D 或方向鍵移動太空人</p>
+    
+    <div id="game-container"></div>
 
-    <main class="game-container">
-        <div id="locked-overlay" class="locked-overlay">
-            <h2>⛔ 存取權限不足</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">請先登入以喚醒您的角色。</p>
-            <button class="auth-btn" style="font-size: 1.2rem; padding: 1rem 2rem;" onclick="document.getElementById('auth-btn').click()">喚醒角色</button>
-        </div>
+    <script>
+        // ==========================================
+        // 🚀 這裡是 Phaser 遊戲引擎的專屬語法
+        // ==========================================
 
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
-        <div class="controls-hint">⌨️ 使用鍵盤 <b>W A S D</b> 探索大地圖</div>
-
-        <div class="dpad-container">
-            <div class="dpad-btn" id="btn-up">⬆️</div>
-            <div class="dpad-row">
-                <div class="dpad-btn" id="btn-left">⬅️</div>
-                <div class="dpad-btn" id="btn-down">⬇️</div>
-                <div class="dpad-btn" id="btn-right">➡️</div>
-            </div>
-        </div>
-    </main>
-
-    <div id="battle-transition" class="battle-transition"></div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBjcI122qYfHW9ibPLz-XG8kleDq4r2pF8", authDomain: "math-rpg-test.firebaseapp.com", projectId: "math-rpg-test",
-            storageBucket: "math-rpg-test.firebasestorage.app", messagingSenderId: "593199481365", appId: "1:593199481365:web:7ad8656ff4aef6d0ca841c"
+        // 1. 設定遊戲基本參數
+        const config = {
+            type: Phaser.AUTO, // 自動決定用 WebGL 或 Canvas 渲染（效能最好）
+            width: 800,        // 遊戲畫面寬度
+            height: 500,       // 遊戲畫面高度
+            parent: 'game-container', // 把遊戲塞進上面的 div 裡
+            physics: {
+                default: 'arcade', // 啟用街機物理引擎（處理碰撞）
+                arcade: { debug: false } // 如果改成 true，會看到碰撞框框
+            },
+            scene: {
+                preload: preload, // 第一步：載入圖片
+                create: create,   // 第二步：把圖片放進畫面
+                update: update    // 第三步：每秒更新 60 次的遊戲迴圈
+            }
         };
 
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const provider = new GoogleAuthProvider(); const db = getFirestore(app);
-        let isLoggedIn = false; let isTransitioning = false; 
+        // 啟動遊戲！
+        const game = new Phaser.Game(config);
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                isLoggedIn = true;
-                document.getElementById('auth-btn').innerText = '登出'; document.getElementById('auth-btn').classList.add('logout');
-                document.getElementById('user-info').style.display = 'flex'; document.getElementById('player-name').innerText = user.displayName;
-                document.getElementById('locked-overlay').style.display = 'none';
+        // --- 全域變數 ---
+        let player;
+        let slime;
+        let cursors;
+        let keys;
 
-                const docSnap = await getDoc(doc(db, "users", user.uid));
-                if (docSnap.exists()) document.getElementById('player-coins').innerText = docSnap.data().coins;
-            } else {
-                isLoggedIn = false;
-                document.getElementById('auth-btn').innerText = '登入'; document.getElementById('auth-btn').classList.remove('logout');
-                document.getElementById('user-info').style.display = 'none'; document.getElementById('locked-overlay').style.display = 'flex';
-            }
-        });
-
-        document.getElementById('auth-btn').addEventListener('click', () => { if (auth.currentUser) signOut(auth); else signInWithPopup(auth, provider); });
-
-        // ==========================================
-        // 🌍 大世界遊戲引擎 (攝影機 + 九宮格)
-        // ==========================================
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // 1. 定義整個世界的真實大小 (比畫布大非常多)
-        const WORLD_WIDTH = 2400;
-        const WORLD_HEIGHT = 2000;
-
-        // 2. 定義攝影機 (螢幕看到的範圍)
-        const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
-
-        // 3. 勇者 (起始點在世界正中央)
-        const player = { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2 - 200, size: 40, speed: 5, icon: '🧙‍♂️' };
-
-        // 4. 九宮格傳送點 (Portals)
-        const portals = [
-            { id: 'start', x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2 - 200, size: 80, icon: '🏛️', title: '起始神殿', url: '#' },
-            { id: '7-up',  x: WORLD_WIDTH/2 - 600, y: WORLD_HEIGHT/2 - 600, size: 80, icon: '🏰', title: '七上之塔', url: '#' },
-            { id: '7-dn',  x: WORLD_WIDTH/2 + 600, y: WORLD_HEIGHT/2 - 600, size: 80, icon: '🏰', title: '七下之塔', url: '#' },
-            { id: '8-up',  x: WORLD_WIDTH/2 - 600, y: WORLD_HEIGHT/2,       size: 80, icon: '🌋', title: '八上之塔', url: '#' },
-            { id: '8-dn',  x: WORLD_WIDTH/2 + 600, y: WORLD_HEIGHT/2,       size: 80, icon: '🌋', title: '八下之塔', url: '#' },
-            { id: '9-up',  x: WORLD_WIDTH/2 - 600, y: WORLD_HEIGHT/2 + 600, size: 80, icon: '☁️', title: '九上天空城', url: '#' },
-            { id: '9-dn',  x: WORLD_WIDTH/2 + 600, y: WORLD_HEIGHT/2 + 600, size: 80, icon: '🌌', title: '九下異空間', url: '#' },
-            // 特別放一個直接去 1-1 的傳送門讓你測試
-            { id: '1-1-test', x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2 + 200, size: 60, icon: '⚔️', title: '前往 1-1 原野', url: '1-1.html' }
-        ];
-
-        // 5. 自由移動的敵人 (Roaming AI)
-        const enemies = [
-            { id: 'e1', x: WORLD_WIDTH/2 - 200, y: WORLD_HEIGHT/2 - 200, size: 45, icon: '👾', title: '遊蕩史萊姆', vx: 2, vy: 1.5 },
-            { id: 'e2', x: WORLD_WIDTH/2 + 200, y: WORLD_HEIGHT/2 - 100, size: 45, icon: '🦇', title: '蝙蝠', vx: -3, vy: 2 }
-        ];
-
-        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
-        window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
-        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
-
-        // 手機搖桿
-        function setupDpadBtn(btnId, keyName) {
-            const btn = document.getElementById(btnId);
-            const pressDown = (e) => { e.preventDefault(); keys[keyName] = true; btn.classList.add('active'); };
-            const releaseUp = (e) => { e.preventDefault(); keys[keyName] = false; btn.classList.remove('active'); };
-            btn.addEventListener('mousedown', pressDown); btn.addEventListener('mouseup', releaseUp); btn.addEventListener('mouseleave', releaseUp);
-            btn.addEventListener('touchstart', pressDown, {passive: false}); btn.addEventListener('touchend', releaseUp, {passive: false}); btn.addEventListener('touchcancel', releaseUp, {passive: false});
-        }
-        setupDpadBtn('btn-up', 'ArrowUp'); setupDpadBtn('btn-down', 'ArrowDown'); setupDpadBtn('btn-left', 'ArrowLeft'); setupDpadBtn('btn-right', 'ArrowRight');
-
-        function checkCollision(rect1, rect2) {
-            return (rect1.x < rect2.x + rect2.size && rect1.x + rect1.size > rect2.x && rect1.y < rect2.y + rect2.size && rect1.y + rect1.size > rect2.y);
+        // 【第一步】載入素材 (直接連線到 Phaser 官方免費圖庫)
+        function preload() {
+            // 我們不需要自己準備圖片，直接用網址抓官方的測試圖！
+            this.load.image('bg', 'https://labs.phaser.io/assets/skies/space3.png'); // 星空背景
+            this.load.image('spaceman', 'https://labs.phaser.io/assets/sprites/spaceman.png'); // 太空人
+            this.load.image('slime', 'https://labs.phaser.io/assets/sprites/slime.png'); // 史萊姆
         }
 
-        // 提示訊息系統 (取代 alert)
-        let inGameMessage = "";
-        let messageTimer = 0;
-        function showMessage(msg) { inGameMessage = msg; messageTimer = 120; } // 顯示 2 秒 (60幀 * 2)
+        // 【第二步】畫面佈置與設定
+        function create() {
+            // 1. 放上背景圖 (放在正中央)
+            this.add.image(400, 250, 'bg');
 
+            // 2. 創造史萊姆 (設為物理實體，放在座標 600, 250)
+            slime = this.physics.add.image(600, 250, 'slime');
+            slime.setImmovable(true); // 史萊姆很重，推不動
+
+            // 3. 創造玩家 (設為物理實體，放在座標 100, 250)
+            player = this.physics.add.image(100, 250, 'spaceman');
+            player.setCollideWorldBounds(true); // 絕對撞不穿畫面邊緣！(物理引擎魔法)
+
+            // 4. 設定碰撞偵測！當玩家撞到史萊姆時，執行 hitSlime 函數
+            this.physics.add.collider(player, slime, hitSlime, null, this);
+
+            // 5. 啟用鍵盤方向鍵 (上下左右) 與 WASD
+            cursors = this.input.keyboard.createCursorKeys();
+            keys = this.input.keyboard.addKeys('W,A,S,D');
+
+            // 放一段文字
+            this.add.text(20, 20, '去撞那隻史萊姆！', { fontSize: '24px', fill: '#fff' });
+        }
+
+        // 【第三步】遊戲迴圈 (角色移動邏輯)
         function update() {
-            if (!isLoggedIn || isTransitioning) return; 
+            // 每次更新前，先讓玩家停下來 (摩擦力)
+            player.setVelocity(0);
 
-            // 勇者移動
-            if (keys.w || keys.ArrowUp) player.y -= player.speed;
-            if (keys.s || keys.ArrowDown) player.y += player.speed;
-            if (keys.a || keys.ArrowLeft) player.x -= player.speed;
-            if (keys.d || keys.ArrowRight) player.x += player.speed;
+            // 偵測鍵盤按下，給予速度 (Velocity)
+            const speed = 300; // 移動速度
 
-            // 世界邊界限制
-            if (player.x < 0) player.x = 0; if (player.y < 0) player.y = 0;
-            if (player.x + player.size > WORLD_WIDTH) player.x = WORLD_WIDTH - player.size;
-            if (player.y + player.size > WORLD_HEIGHT) player.y = WORLD_HEIGHT - player.size;
-
-            // 🎥 攝影機跟隨邏輯 (核心魔法)
-            camera.x = player.x - canvas.width / 2;
-            camera.y = player.y - canvas.height / 2;
-            // 確保攝影機不會看出去世界外面
-            camera.x = Math.max(0, Math.min(camera.x, WORLD_WIDTH - canvas.width));
-            camera.y = Math.max(0, Math.min(camera.y, WORLD_HEIGHT - canvas.height));
-
-            // 👾 敵人巡邏邏輯
-            enemies.forEach(enemy => {
-                enemy.x += enemy.vx; enemy.y += enemy.vy;
-                // 碰到邊界會反彈
-                if (enemy.x <= 0 || enemy.x + enemy.size >= WORLD_WIDTH) enemy.vx *= -1;
-                if (enemy.y <= 0 || enemy.y + enemy.size >= WORLD_HEIGHT) enemy.vy *= -1;
-            });
-
-            // 碰觸檢查：建築物 (Portals)
-            portals.forEach(portal => {
-                if (checkCollision(player, portal)) {
-                    if (portal.url !== '#') {
-                        isTransitioning = true; 
-                        const transitionEl = document.getElementById('battle-transition');
-                        transitionEl.innerHTML = `<div>🌀 傳送魔法啟動！<div class="transition-sub">前往：${portal.title}</div></div>`;
-                        transitionEl.classList.add('active'); 
-                        setTimeout(() => { window.location.href = portal.url; }, 1200);
-                    } else {
-                        showMessage(`🚧 ${portal.title} 施工中，敬請期待！`);
-                        player.y += 10; // 輕微推開
-                    }
-                }
-            });
-
-            // 碰觸檢查：遊蕩敵人
-            enemies.forEach(enemy => {
-                if (checkCollision(player, enemy)) {
-                    showMessage(`💬 抓不到我～我是來展示移動 AI 的！`);
-                    enemy.vx *= -1; enemy.vy *= -1; // 撞到勇者反彈
-                }
-            });
-
-            if (messageTimer > 0) messageTimer--;
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 🎥 保存當前畫布狀態，開始根據攝影機偏移世界
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
-
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-
-            // 畫建築物
-            portals.forEach(p => {
-                ctx.font = `${p.size}px Arial`;
-                ctx.fillText(p.icon, p.x + p.size/2, p.y);
-                ctx.font = "bold 20px 'Noto Sans TC'"; ctx.fillStyle = "white";
-                ctx.fillText(p.title, p.x + p.size/2, p.y - 30);
-                
-                // 畫個發光底座
-                ctx.beginPath();
-                ctx.ellipse(p.x + p.size/2, p.y + p.size, p.size*0.8, p.size*0.3, 0, 0, Math.PI*2);
-                ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; ctx.fill();
-            });
-
-            // 畫敵人
-            enemies.forEach(e => {
-                ctx.font = `${e.size}px Arial`;
-                ctx.fillText(e.icon, e.x + e.size/2, e.y);
-                ctx.font = "14px 'Noto Sans TC'"; ctx.fillStyle = "#f43f5e";
-                ctx.fillText(e.title, e.x + e.size/2, e.y - 20);
-            });
-
-            // 畫勇者
-            if (isLoggedIn) {
-                ctx.font = `${player.size}px Arial`;
-                ctx.fillText(player.icon, player.x + player.size/2, player.y);
-                ctx.font = "bold 16px 'Noto Sans TC'"; ctx.fillStyle = "#22d3ee"; 
-                ctx.fillText(document.getElementById('player-name').innerText, player.x + player.size/2, player.y - 25);
+            if (cursors.left.isDown || keys.A.isDown) {
+                player.setVelocityX(-speed);
+            } else if (cursors.right.isDown || keys.D.isDown) {
+                player.setVelocityX(speed);
             }
 
-            // 🎥 畫完世界，恢復畫布狀態
-            ctx.restore();
-
-            // 畫 UI (不會跟著攝影機移動的元素)
-            if (messageTimer > 0) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                ctx.fillRect(canvas.width/2 - 200, 20, 400, 40);
-                ctx.font = "bold 18px 'Noto Sans TC'"; ctx.fillStyle = "white";
-                ctx.fillText(inGameMessage, canvas.width/2, 30);
+            if (cursors.up.isDown || keys.W.isDown) {
+                player.setVelocityY(-speed);
+            } else if (cursors.down.isDown || keys.S.isDown) {
+                player.setVelocityY(speed);
             }
         }
 
-        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-        gameLoop();
+        // 當撞到史萊姆時會觸發的事情
+        function hitSlime(player, slime) {
+            // 把玩家彈開一點點，避免黏在一起
+            player.x -= 20;
+            // 遊戲內的提示
+            alert("⚔️ 遭遇野生史萊姆！(未來這裡會跳轉到 1-1 題庫)");
+        }
     </script>
 </body>
 </html>

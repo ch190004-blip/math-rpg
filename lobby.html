@@ -16,9 +16,7 @@
 
   <div class="hud">
     <div class="hud-left">
-      <div class="hud-chip">
-        <div class="scene-tag" id="hud-scene">大廳原野</div>
-      </div>
+      <div class="hud-chip"><div class="scene-tag" id="hud-scene">大廳原野</div></div>
       <div class="hud-chip">
         <div class="player-meta">
           <div class="player-name" id="hud-name">勇者</div>
@@ -48,9 +46,7 @@
       <button class="control-button right" data-key="right">▶</button>
       <button class="control-button down" data-key="down">▼</button>
     </div>
-    <div class="right-buttons">
-      <button class="control-button action" data-key="action">A</button>
-    </div>
+    <div class="right-buttons"><button class="control-button action" data-key="action">A</button></div>
   </div>
 
   <div class="scene-fade" id="scene-fade"></div>
@@ -66,16 +62,14 @@
     registerServiceWorker();
     await primeAuth();
 
-    let userProfile = null;
     let userReady = false;
-    watchUser(async (user, profile) => {
+    watchUser((user, profile) => {
       userReady = true;
       if (!user) {
         showToast("請先登入", "warn", 1200);
         setTimeout(() => transitionTo("./index.html"), 500);
         return;
       }
-      userProfile = profile;
       updateHud(profile, "大廳原野");
     });
 
@@ -91,41 +85,57 @@
       constructor() {
         super("LobbyScene");
         this.lastAction = false;
-        this.nearestAction = null;
+        this.activePrompt = null;
       }
 
       create() {
         ensureSharedTextures(this);
-        const worldWidth = 2600;
-        const worldHeight = 1800;
+        const worldWidth = 2400;
+        const worldHeight = 1700;
         createTopdownWorld(this, worldWidth, worldHeight);
-
         this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-        this.cameras.main.setBackgroundColor("#8fd6ff");
+        this.cameras.main.setBackgroundColor("#97dfff");
         this.cameras.main.roundPixels = true;
 
-        // water pond
-        this.add.tileSprite(1850, 420, 540, 340, "water-tile").setAlpha(0.95);
-        this.add.ellipse(1850, 420, 580, 380, 0x7bc7ff, 0.24);
+        // Decorative sky/parallax
+        for (let i = 0; i < 12; i += 1) {
+          const cloud = this.add.ellipse(
+            Phaser.Math.Between(0, worldWidth),
+            Phaser.Math.Between(120, 420),
+            Phaser.Math.Between(130, 220),
+            Phaser.Math.Between(42, 72),
+            0xffffff,
+            0.7
+          ).setScrollFactor(0.25, 0.25);
+          this.tweens.add({
+            targets: cloud,
+            x: cloud.x + Phaser.Math.Between(120, 240),
+            duration: Phaser.Math.Between(9000, 15000),
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          });
+        }
 
-        // paths
-        const pathG = this.add.graphics();
-        pathG.fillStyle(0xdcc59c, 1);
-        pathG.fillRoundedRect(140, 920, 1800, 140, 40);
-        pathG.fillRoundedRect(1250, 380, 150, 680, 32);
-        pathG.fillRoundedRect(1250, 380, 980, 130, 32);
-        pathG.fillRoundedRect(2200, 510, 120, 500, 32);
+        this.add.tileSprite(1860, 320, 460, 300, "water-tile").setAlpha(0.92);
+        this.add.ellipse(1860, 320, 520, 360, 0x74cfff, 0.18);
 
-        // vegetation
+        const path = this.add.graphics();
+        path.fillStyle(0xe1ca9f, 1);
+        path.fillRoundedRect(200, 1080, 1700, 160, 40);
+        path.fillRoundedRect(1350, 540, 160, 620, 34);
+        path.fillRoundedRect(1200, 460, 580, 140, 34);
+
         this.obstacles = this.physics.add.staticGroup();
-        const nature = [
-          [220, 240, "tree"], [340, 220, "tree"], [560, 260, "tree"], [770, 240, "tree"],
-          [1380, 1280, "tree"], [1560, 1320, "tree"], [1760, 1340, "tree"], [1940, 1360, "tree"],
-          [320, 1440, "tree"], [520, 1520, "tree"], [720, 1460, "tree"], [2080, 1180, "rock"],
-          [2300, 1180, "tree"], [2160, 1450, "tree"], [2360, 320, "tree"], [2160, 260, "tree"],
-          [1640, 240, "rock"], [1550, 250, "tree"], [2020, 250, "tree"]
+
+        const deco = [
+          [190, 260, "tree"], [360, 230, "tree"], [540, 260, "tree"], [720, 250, "tree"], [920, 260, "tree"],
+          [250, 1460, "tree"], [450, 1530, "tree"], [650, 1470, "tree"], [880, 1510, "rock"],
+          [1980, 1180, "tree"], [2140, 1250, "tree"], [2300, 1170, "tree"], [2140, 1500, "tree"],
+          [2060, 600, "tree"], [2240, 560, "tree"], [1660, 1480, "rock"], [1160, 1460, "tree"]
         ];
-        nature.forEach(([x, y, key]) => {
+
+        deco.forEach(([x, y, key]) => {
           this.add.image(x, y, key).setDepth(y);
           const body = this.physics.add.staticImage(x, y + (key === "tree" ? 18 : 0), "rock").setVisible(false);
           body.body.setSize(key === "tree" ? 44 : 28, key === "tree" ? 20 : 16);
@@ -133,28 +143,41 @@
           this.obstacles.add(body);
         });
 
-        for (let i = 0; i < 20; i += 1) {
+        for (let i = 0; i < 30; i += 1) {
           const flower = this.add.image(
-            Phaser.Math.Between(120, worldWidth - 120),
-            Phaser.Math.Between(120, worldHeight - 120),
+            Phaser.Math.Between(100, worldWidth - 100),
+            Phaser.Math.Between(100, worldHeight - 100),
             "flower"
-          );
+          ).setScale(Phaser.Math.FloatBetween(0.9, 1.15)).setDepth(100);
           flower.setDepth(flower.y);
-          flower.setScale(Phaser.Math.FloatBetween(0.8, 1.15));
         }
 
-        // tower
-        this.add.text(2190, 708, "七上之塔", { fontFamily: "Noto Sans TC", fontSize: "26px", color: "#2149a5", fontStyle: "900" }).setDepth(1000);
-        this.add.image(2230, 820, "portal").setScale(1.35).setDepth(820);
-        this.add.rectangle(2230, 866, 150, 28, 0x314d86, 0.16).setDepth(800);
+        // Tower front
+        const towerBase = this.add.rectangle(1450, 390, 520, 340, 0xe6d6bf).setDepth(300);
+        towerBase.setStrokeStyle(10, 0xc6b08e);
+        const leftTower = this.add.rectangle(1265, 350, 140, 420, 0xe1cfb4).setDepth(299);
+        leftTower.setStrokeStyle(8, 0xb79770);
+        const rightTower = this.add.rectangle(1635, 350, 140, 420, 0xe1cfb4).setDepth(299);
+        rightTower.setStrokeStyle(8, 0xb79770);
+        this.add.triangle(1450, 150, -300, 100, 0, -120, 300, 100, 0x9471ff).setDepth(301).setScale(0.9, 1);
+        this.add.triangle(1265, 70, -90, 90, 0, -90, 90, 90, 0x6c90ff).setDepth(300);
+        this.add.triangle(1635, 70, -90, 90, 0, -90, 90, 90, 0x6c90ff).setDepth(300);
 
-        this.towerZone = this.add.zone(2230, 834, 180, 160);
+        [1280, 1450, 1620].forEach((x) => this.add.image(x, 330, "window").setScale(1.0).setDepth(302));
+        [1388, 1512].forEach((x) => this.add.image(x, 228, "window").setScale(0.9).setDepth(302));
+
+        this.add.text(1450, 70, "七 上 之 塔", { fontFamily: "Noto Sans TC", fontSize: "34px", color: "#ffffff", fontStyle: "900" }).setOrigin(0.5).setDepth(310);
+        this.add.image(1450, 570, "door-open").setScale(1.8).setDepth(303);
+        this.add.rectangle(1450, 720, 280, 34, 0x33549e, 0.18).setDepth(280);
+        this.add.text(1450, 780, "走近大門按 A 進入", { fontFamily: "Noto Sans TC", fontSize: "22px", color: "#2a477e", fontStyle: "900" }).setOrigin(0.5).setDepth(310);
+
+        this.towerZone = this.add.zone(1450, 640, 280, 220);
         this.physics.world.enable(this.towerZone);
         this.towerZone.body.setAllowGravity(false);
         this.towerZone.body.moves = false;
 
-        const startPos = getSceneState("lobby", { x: 430, y: 950 });
-        this.player = this.physics.add.sprite(startPos.x, startPos.y, "hero-top-idle");
+        const start = getSceneState("lobby", { x: 460, y: 1100 });
+        this.player = this.physics.add.sprite(start.x, start.y, "hero-top-idle");
         this.player.setCollideWorldBounds(true);
         this.player.setSize(16, 14);
         this.player.setOffset(4, 14);
@@ -162,9 +185,9 @@
 
         this.physics.add.collider(this.player, this.obstacles);
         this.physics.add.overlap(this.player, this.towerZone, () => {
-          this.nearestAction = {
+          this.activePrompt = {
             label: "A 進入 七上之塔",
-            run: () => {
+            action: () => {
               saveSceneState("lobby", { x: this.player.x, y: this.player.y });
               transitionTo("./tower-seven-up.html");
             }
@@ -173,7 +196,7 @@
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         const zoom = Math.min(window.innerWidth / 520, window.innerHeight / 320);
-        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.45, 2.5));
+        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.45, 2.45));
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys("W,A,S,D,E");
@@ -182,28 +205,13 @@
           loop: true,
           callback: () => saveSceneState("lobby", { x: this.player.x, y: this.player.y })
         });
-
-        const clouds = this.add.group();
-        for (let i = 0; i < 10; i += 1) {
-          const cloud = this.add.ellipse(Phaser.Math.Between(0, worldWidth), Phaser.Math.Between(80, 400), 140, 54, 0xffffff, 0.7);
-          cloud.setScrollFactor(0.35, 0.35);
-          clouds.add(cloud);
-          this.tweens.add({
-            targets: cloud,
-            x: cloud.x + Phaser.Math.Between(120, 260),
-            duration: Phaser.Math.Between(9000, 14000),
-            yoyo: true,
-            repeat: -1,
-            ease: "Sine.easeInOut"
-          });
-        }
-
-        this.events.on("shutdown", () => saveSceneState("lobby", { x: this.player.x, y: this.player.y }));
       }
 
       update() {
         if (!userReady) return;
-        this.nearestAction = null;
+        this.activePrompt = null;
+        this.physics.world.overlap(this.player, this.towerZone);
+
         const speed = 176;
         const left = this.cursors.left.isDown || this.keys.A.isDown || controlState.left;
         const right = this.cursors.right.isDown || this.keys.D.isDown || controlState.right;
@@ -211,32 +219,26 @@
         const down = this.cursors.down.isDown || this.keys.S.isDown || controlState.down;
 
         this.player.body.setVelocity(0);
-
         if (left) this.player.body.setVelocityX(-speed);
         else if (right) this.player.body.setVelocityX(speed);
-
         if (up) this.player.body.setVelocityY(-speed);
         else if (down) this.player.body.setVelocityY(speed);
 
         if (this.player.body.velocity.length() > 0) {
           this.player.body.velocity.normalize().scale(speed);
-          this.player.setTexture(Math.floor(this.time.now / 160) % 2 === 0 ? "hero-top-idle" : "hero-top-step");
+          this.player.setTexture(Math.floor(this.time.now / 170) % 2 === 0 ? "hero-top-idle" : "hero-top-step");
         } else {
           this.player.setTexture("hero-top-idle");
         }
-
         this.player.setFlipX(left);
 
-        // action after overlaps are processed
-        this.physics.world.overlap(this.player, this.towerZone);
-        if (this.nearestAction) setActionHint(this.nearestAction.label);
-        else setActionHint("");
-
-        const actionPressed = controlState.action || this.keys.E.isDown || Phaser.Input.Keyboard.JustDown(this.cursors.space) || Phaser.Input.Keyboard.JustDown(this.cursors.shift);
-        if (this.nearestAction && actionPressed && !this.lastAction) {
-          this.nearestAction.run();
+        setActionHint(this.activePrompt ? this.activePrompt.label : "");
+        const actionPressed = controlState.action || this.keys.E.isDown || Phaser.Input.Keyboard.JustDown(this.cursors.space);
+        if (this.activePrompt && actionPressed && !this.lastAction) {
+          this.activePrompt.action();
         }
         this.lastAction = actionPressed;
+        this.player.setDepth(this.player.y + 10);
       }
     }
 
@@ -250,9 +252,7 @@
       scene: [LobbyScene]
     });
 
-    window.addEventListener("resize", () => {
-      game.scale.resize(window.innerWidth, window.innerHeight);
-    });
+    window.addEventListener("resize", () => game.scale.resize(window.innerWidth, window.innerHeight));
   </script>
 </body>
 </html>

@@ -16,31 +16,18 @@
   <div class="clouds"></div>
   <div class="mountains"></div>
   <div class="field"></div>
-
-  <div class="hero">
-    <div class="hero-shadow"></div>
-  </div>
-
-  <div class="tower">
-    <div class="window one"></div>
-    <div class="window two"></div>
-    <div class="window three"></div>
-  </div>
+  <div class="hero"><div class="hero-shadow"></div></div>
+  <div class="tower"><div class="window one"></div><div class="window two"></div><div class="window three"></div></div>
 
   <div class="card-wrap">
     <div class="floating-card" id="card">
       <div class="logo">MATH<br>RPG</div>
-      <div class="sub">Google 登入後，直接進入沉浸式大廳。</div>
       <div class="status" id="status-pill">⚔️ 準備啟程</div>
       <div class="actions">
-        <button class="primary-btn" id="login-btn">Google 登入啟程</button>
-        <button class="ghost-btn" id="continue-btn" style="display:none;">繼續冒險</button>
+        <button class="primary-btn" id="login-btn">Google 登入</button>
+        <button class="ghost-btn" id="continue-btn" style="display:none;">進入世界</button>
       </div>
       <div class="error" id="error-text"></div>
-      <div class="mini">
-        Web / Android / iPhone 瀏覽器皆可直接開啟。<br>
-        建議用 HTTPS 靜態主機或本機伺服器執行。
-      </div>
     </div>
   </div>
 
@@ -53,13 +40,10 @@
     const continueBtn = document.getElementById("continue-btn");
     const statusPill = document.getElementById("status-pill");
     const errorText = document.getElementById("error-text");
-    const card = document.getElementById("card");
 
     await primeAuth();
 
-    let currentUser = null;
     watchUser((user, profile) => {
-      currentUser = user;
       if (user && profile) {
         statusPill.textContent = `✨ ${profile.name} · Lv.${profile.level} · ${profile.coins} G`;
         loginBtn.style.display = "none";
@@ -73,24 +57,16 @@
 
     loginBtn.addEventListener("click", async () => {
       errorText.textContent = "";
-      card.classList.add("loading");
       try {
         await signInGoogle();
       } catch (error) {
-        errorText.textContent = "登入失敗：" + error.message;
-      } finally {
-        card.classList.remove("loading");
+        console.error(error);
+        errorText.textContent = "登入失敗，請確認 Firebase 網域設定。";
       }
     });
 
     continueBtn.addEventListener("click", () => {
       window.location.href = "./lobby.html";
-    });
-
-    window.addEventListener("pageshow", () => {
-      if (currentUser) {
-        continueBtn.style.display = "block";
-      }
     });
   </script>
 </body>

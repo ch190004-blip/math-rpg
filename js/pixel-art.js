@@ -129,7 +129,12 @@ export function ensureSharedTextures(scene) {
     blue: [0x78d4ff, 0x3f7fc9],
     pink: [0xff8de3, 0xc55ab0],
     gold: [0xffdd6e, 0xc99322],
-    purple: [0xa98cff, 0x5c45b0]
+    purple: [0xa98cff, 0x5c45b0],
+    red: [0xff8a7a, 0xc45144],
+    aqua: [0x7af7f0, 0x2d9f99],
+    orange: [0xffb86d, 0xcf7a1d],
+    teal: [0x87f0ca, 0x2c9d73],
+    silver: [0xe0e7f3, 0x8a97ad]
   };
 
   Object.entries(slimeColors).forEach(([name, [main, shadow]]) => {

@@ -16,9 +16,7 @@
 
   <div class="hud">
     <div class="hud-left">
-      <div class="hud-chip">
-        <div class="scene-tag" id="hud-scene">1-1 原野</div>
-      </div>
+      <div class="hud-chip"><div class="scene-tag" id="hud-scene">1-1 原野</div></div>
       <div class="hud-chip">
         <div class="player-meta">
           <div class="player-name" id="hud-name">勇者</div>
@@ -48,9 +46,7 @@
       <button class="control-button right" data-key="right">▶</button>
       <button class="control-button down" data-key="down">▼</button>
     </div>
-    <div class="right-buttons">
-      <button class="control-button action" data-key="action">A</button>
-    </div>
+    <div class="right-buttons"><button class="control-button action" data-key="action">A</button></div>
   </div>
 
   <div class="scene-fade" id="scene-fade"></div>
@@ -100,34 +96,34 @@
 
       create() {
         ensureSharedTextures(this);
-        const worldWidth = 2600;
-        const worldHeight = 1800;
+        const worldWidth = 2800;
+        const worldHeight = 1900;
         createTopdownWorld(this, worldWidth, worldHeight);
         this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
         this.cameras.main.setBackgroundColor("#8fd6ff");
         this.cameras.main.roundPixels = true;
 
-        // terrain features
-        this.add.tileSprite(860, 1380, 560, 320, "water-tile").setAlpha(0.95);
-        this.add.ellipse(860, 1380, 620, 360, 0x7bc7ff, 0.22);
+        this.add.tileSprite(860, 1490, 640, 360, "water-tile").setAlpha(0.95);
+        this.add.ellipse(860, 1490, 700, 390, 0x7bc7ff, 0.2);
+        this.add.tileSprite(2200, 420, 460, 240, "water-tile").setAlpha(0.9);
+        this.add.ellipse(2200, 420, 510, 280, 0x7bc7ff, 0.18);
 
         const path = this.add.graphics();
         path.fillStyle(0xe0c79d, 1);
-        path.fillRoundedRect(180, 970, 2160, 136, 36);
-        path.fillRoundedRect(440, 740, 130, 530, 30);
-        path.fillRoundedRect(430, 730, 340, 116, 24);
-        path.fillRoundedRect(1680, 780, 130, 500, 30);
-        path.fillRoundedRect(1680, 768, 580, 120, 28);
+        path.fillRoundedRect(180, 1080, 2360, 150, 38);
+        path.fillRoundedRect(430, 760, 130, 630, 32);
+        path.fillRoundedRect(420, 745, 360, 120, 28);
+        path.fillRoundedRect(1760, 820, 130, 560, 32);
+        path.fillRoundedRect(1760, 810, 640, 120, 28);
+        path.fillRoundedRect(2300, 900, 120, 500, 28);
 
-        // scenery
         this.obstacles = this.physics.add.staticGroup();
         const obstacleData = [
-          [140, 260, "tree"], [340, 260, "tree"], [520, 240, "tree"], [740, 260, "tree"],
-          [2040, 280, "tree"], [2240, 280, "tree"], [2440, 260, "tree"],
-          [2380, 1380, "tree"], [2200, 1470, "tree"], [2000, 1560, "tree"],
-          [340, 1520, "tree"], [520, 1600, "tree"], [660, 1490, "rock"], [1400, 1440, "tree"],
-          [1560, 1490, "rock"], [1760, 1520, "tree"], [1960, 1120, "rock"], [2090, 1090, "tree"],
-          [1700, 300, "rock"], [1040, 320, "tree"], [1220, 340, "tree"]
+          [160, 260, "tree"], [340, 250, "tree"], [540, 250, "tree"], [760, 250, "tree"], [980, 270, "rock"],
+          [2200, 260, "tree"], [2400, 260, "tree"], [2600, 280, "tree"],
+          [2350, 1520, "tree"], [2140, 1580, "tree"], [1940, 1640, "tree"], [1700, 1510, "rock"],
+          [360, 1640, "tree"], [520, 1710, "tree"], [680, 1630, "rock"], [1220, 1590, "tree"],
+          [1480, 1610, "tree"], [1640, 300, "rock"], [1120, 340, "tree"], [1340, 320, "tree"]
         ];
         obstacleData.forEach(([x, y, key]) => {
           this.add.image(x, y, key).setDepth(y);
@@ -136,24 +132,23 @@
           body.refreshBody();
           this.obstacles.add(body);
         });
-        for (let i = 0; i < 28; i += 1) {
+
+        for (let i = 0; i < 34; i += 1) {
           const flower = this.add.image(
             Phaser.Math.Between(100, worldWidth - 100),
             Phaser.Math.Between(100, worldHeight - 100),
             "flower"
-          ).setScale(Phaser.Math.FloatBetween(0.8, 1.15));
+          ).setScale(Phaser.Math.FloatBetween(0.85, 1.2));
           flower.setDepth(flower.y);
         }
 
-        // return portal
-        this.add.text(460, 650, "返回七上之塔", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#2149a5", fontStyle: "900" });
-        this.add.image(470, 820, "portal").setScale(1.28).setDepth(840);
-        this.portalZone = this.add.zone(470, 820, 180, 160);
-        this.physics.world.enable(this.portalZone);
-        this.portalZone.body.setAllowGravity(false);
-        this.portalZone.body.moves = false;
+        this.add.text(470, 660, "返回七上之塔", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#2149a5", fontStyle: "900" });
+        this.add.image(470, 840, "portal").setScale(1.28).setDepth(840);
+        this.portalZone = this.makeZone(470, 840, 190, 180);
 
-        const start = getSceneState("chapter-1-1-field", { x: 280, y: 960 });
+        this.add.text(2100, 760, "題型史萊姆區", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#25506e", fontStyle: "900" }).setOrigin(0.5);
+
+        const start = getSceneState("chapter-1-1-field", { x: 280, y: 1060 });
         this.player = this.physics.add.sprite(start.x, start.y, "hero-top-idle");
         this.player.setCollideWorldBounds(true);
         this.player.setSize(16, 14);
@@ -161,27 +156,42 @@
         this.physics.add.collider(this.player, this.obstacles);
 
         this.slimeDefinitions = [
-          { key: "green", label: "題型一 · 標準題", qType: 1, mode: "standard" },
-          { key: "blue", label: "題型一 · 素養題", qType: 1, mode: "app" },
-          { key: "pink", label: "題型二 · 標準題", qType: 2, mode: "standard" },
-          { key: "gold", label: "題型二 · 素養題", qType: 2, mode: "app" },
-          { key: "purple", label: "隨機挑戰", qType: Phaser.Math.Between(1, 2), mode: Phaser.Math.Between(0, 1) ? "app" : "standard" }
+          { key: "green", type: 1, short: "題型一", label: "題型一：相反意義的量(一)", page: "./battle-1-1-type1.html" },
+          { key: "blue", type: 2, short: "題型二", label: "題型二：相反意義的量(二)", page: "./battle-1-1-type2.html" },
+          { key: "pink", type: 3, short: "題型三", label: "題型三：數線坐標與距離", page: "./battle-1-1-type3.html" },
+          { key: "gold", type: 4, short: "題型四", label: "題型四：數線與等分點", page: "./battle-1-1-type4.html" },
+          { key: "purple", type: 5, short: "題型五", label: "題型五：數的大小比較(一)", page: "./battle-1-1-type5.html" },
+          { key: "red", type: 6, short: "題型六", label: "題型六：數的大小比較(二)", page: "./battle-1-1-type6.html" },
+          { key: "aqua", type: 7, short: "題型七", label: "題型七：相反數解碼", page: "./battle-1-1-type7.html" },
+          { key: "orange", type: 8, short: "題型八", label: "題型八：絕對值運算範圍", page: "./battle-1-1-type8.html" },
+          { key: "teal", type: 9, short: "題型九", label: "題型九：圖解絕對值距離", page: "./battle-1-1-type9.html" },
+          { key: "silver", type: 10, short: "題型十", label: "題型十：綜合挑戰", page: "./battle-1-1-type10.html" }
         ];
 
         this.slimes = [];
         const spawnPoints = [
-          [1040, 900], [1180, 760], [1300, 1020], [1470, 890],
-          [1650, 620], [1860, 980], [2100, 760], [2210, 920], [1970, 1240], [1410, 560]
+          [980, 1010], [1180, 850], [1340, 1170], [1520, 980], [1700, 720],
+          [1880, 1130], [2060, 890], [2230, 1060], [2050, 1360], [1520, 620]
         ];
+
         spawnPoints.forEach((point, index) => {
-          const base = this.slimeDefinitions[index % this.slimeDefinitions.length];
+          const base = this.slimeDefinitions[index];
           const slime = this.physics.add.sprite(point[0], point[1], `slime-${base.key}`);
           slime.setCircle(10, 4, 8);
           slime.setBounce(1, 1);
           slime.setCollideWorldBounds(true);
-          slime.body.setVelocity(Phaser.Math.Between(-60, 60), Phaser.Math.Between(-60, 60));
+          slime.body.setVelocity(Phaser.Math.Between(-70, 70), Phaser.Math.Between(-70, 70));
           slime.setData("battle", { ...base });
           slime.setDepth(slime.y + 4);
+          const tag = this.add.text(point[0], point[1] - 38, base.short, {
+            fontFamily: "Noto Sans TC",
+            fontSize: "18px",
+            color: "#ffffff",
+            backgroundColor: "rgba(37,67,111,0.55)",
+            padding: { left: 8, right: 8, top: 4, bottom: 4 }
+          }).setOrigin(0.5).setDepth(slime.y + 5);
+          slime.setData("tag", tag);
+
           this.tweens.add({
             targets: slime,
             scaleY: 0.92,
@@ -205,7 +215,7 @@
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         const zoom = Math.min(window.innerWidth / 520, window.innerHeight / 320);
-        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.35, 2.3));
+        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.3, 2.2));
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys("W,A,S,D,E");
@@ -216,33 +226,35 @@
             saveSceneState("chapter-1-1-field", { x: this.player.x, y: this.player.y });
             this.slimes.forEach((slime) => {
               if (!slime.active) return;
-              slime.body.setVelocity(
-                Phaser.Math.Between(-80, 80),
-                Phaser.Math.Between(-80, 80)
-              );
+              slime.body.setVelocity(Phaser.Math.Between(-84, 84), Phaser.Math.Between(-84, 84));
             });
           }
         });
+      }
+
+      makeZone(x, y, w, h) {
+        const zone = this.add.zone(x, y, w, h);
+        this.physics.world.enable(zone);
+        zone.body.setAllowGravity(false);
+        zone.body.moves = false;
+        return zone;
       }
 
       startBattle(slime) {
         if (this.battleLock) return;
         this.battleLock = true;
         const battle = slime.getData("battle");
-        const entry = {
+        setBattleEntry({
           scene: "chapter-1-1-field",
-          qType: battle.qType,
-          mode: battle.mode,
-          slime: battle.key,
+          type: battle.type,
           label: battle.label,
           returnTo: "./chapter-1-1-field.html"
-        };
-        setBattleEntry(entry);
+        });
         saveSceneState("chapter-1-1-field", { x: this.player.x, y: this.player.y });
         this.cameras.main.flash(220, 255, 255, 255);
         showToast(`遭遇 ${battle.label}`, "warn", 900);
         setTimeout(() => {
-          transitionTo(`./1-1.html?battle=1&qType=${battle.qType}&mode=${battle.mode}&returnTo=chapter-1-1-field.html&label=${encodeURIComponent(battle.label)}`);
+          transitionTo(`${battle.page}?battle=1&type=${battle.type}&returnTo=chapter-1-1-field.html&label=${encodeURIComponent(battle.label)}`);
         }, 260);
       }
 
@@ -250,8 +262,7 @@
         if (!userReady) return;
         this.portalAction = null;
         this.physics.world.overlap(this.player, this.portalZone);
-        if (this.portalAction) setActionHint("A 回七上之塔");
-        else setActionHint("");
+        setActionHint(this.portalAction ? "A 回七上之塔" : "");
 
         const speed = 176;
         const left = this.cursors.left.isDown || this.keys.A.isDown || controlState.left;
@@ -279,7 +290,14 @@
         }
         this.lastAction = actionPressed;
 
-        this.slimes.forEach((slime) => slime.setDepth(slime.y + 4));
+        this.slimes.forEach((slime) => {
+          const tag = slime.getData("tag");
+          slime.setDepth(slime.y + 4);
+          if (tag) {
+            tag.setPosition(slime.x, slime.y - 38);
+            tag.setDepth(slime.y + 5);
+          }
+        });
         this.player.setDepth(this.player.y + 10);
       }
     }

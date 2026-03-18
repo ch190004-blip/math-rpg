@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <title>1-1 負數與數線｜題型 9 戰鬥</title>
+  <link rel="stylesheet" href="./styles/battle-ui.css">
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-shell-left">
+      <button class="game-shell-btn" id="return-btn">🏕 回原野</button>
+      <button class="game-shell-btn" id="tower-btn">🗼 七上之塔</button>
+    </div>
+    <div class="game-shell-right">
+      <div class="battle-tag" id="battle-tag">戰鬥中</div>
+    </div>
+  </div>
+
+  <header class="top-bar">
+    <div class="page-title" id="page-title">CH 1-1 負數與數線</div>
+    <div class="player-status">
+      <div id="player-info" style="display:none; align-items:center; gap:10px;">
+        <span class="name" id="player-name"></span>
+        <span class="coins">💰 <span id="player-coins">0</span></span>
+      </div>
+      <button class="modal-btn" onclick="toggleModal(true)">⚡ 核心心法</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">🌐 題型終端機</div>
+    </aside>
+
+    <main class="main-content">
+      <div class="timer-wrapper"><div id="timer">00:00</div></div>
+
+      <div class="question-card">
+        <div class="q-header"><span class="q-badge" id="modeBadge">📝 課本標準情境</span></div>
+        <div class="q-text" id="qText"></div>
+        <canvas id="mathCanvas" width="600" height="150"></canvas>
+        <div class="hint-section" id="hText"></div>
+        <div class="answer-section" id="aText"></div>
+        <div class="battle-note-box" id="battle-note"></div>
+
+        <div class="action-group">
+          <button class="btn btn-hint" id="hint-btn">👁️ 掃描解題思路</button>
+          <button class="btn btn-ans" id="answer-btn">✅ 檢視解答</button>
+          <button class="btn btn-next-calc" id="standard-btn">🔄 基礎情境（換一題）</button>
+          <button class="btn btn-next-app" id="app-btn">🚀 現代素養（換一題）</button>
+        </div>
+
+        <button class="battle-complete-btn" id="complete-btn">💰 完成挑戰並返回 1-1 原野</button>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="coreModal" onclick="if(event.target===this) toggleModal(false)">
+    <div class="modal-content">
+      <span class="modal-close" onclick="toggleModal(false)">&times;</span>
+      <h2 style="color: var(--accent-main); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">⚡ 核心心法資料庫</h2>
+      <div class="core-rules">
+        <ul>
+          <li><strong style="color:var(--accent-main)">正負相對性：</strong>生活中的量具有相對性。若規定一方為正(＋)，則另一方即為負(－)。</li>
+          <li><strong style="color:var(--accent-main)">數線三要素：</strong>包含原點(0)、正向（通常向右）與單位長。</li>
+          <li><strong style="color:var(--accent-main)">絕對值：</strong>點到原點的距離，記為 |a|，距離必定為 0 或正數。</li>
+          <li><strong style="color:var(--accent-main)">相反數：</strong>符號相反、數字相同的兩數；若互為相反數，則和為 0。</li>
+          <li><strong style="color:var(--accent-main)">數的大小：</strong>數線上愈右邊的點代表的數愈大；正數 &gt; 0 &gt; 負數。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { bootBattlePage } from "./js/ch1-1-battle-engine.js";
+    bootBattlePage(9);
+  </script>
+</body>
+</html>

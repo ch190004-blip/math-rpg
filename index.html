@@ -1,124 +1,97 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學 RPG - Phaser 引擎測試</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
-
-    <style>
-        body {
-            margin: 0; padding: 0;
-            background-color: #0f172a; 
-            color: white; font-family: sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
-        }
-        h2 { color: #22d3ee; }
-        /* 遊戲畫布的外框 */
-        #game-container {
-            border: 4px solid #22d3ee; border-radius: 10px; box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); overflow: hidden;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#5aa8ff" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <title>Math RPG</title>
+  <link rel="stylesheet" href="./styles/start.css" />
 </head>
 <body>
+  <div class="sky"></div>
+  <div class="clouds"></div>
+  <div class="mountains"></div>
+  <div class="field"></div>
 
-    <h2>⚔️ Phaser 遊戲引擎測試</h2>
-    <p>請用鍵盤 W, A, S, D 或方向鍵移動太空人</p>
-    
-    <div id="game-container"></div>
+  <div class="hero">
+    <div class="hero-shadow"></div>
+  </div>
 
-    <script>
-        // ==========================================
-        // 🚀 這裡是 Phaser 遊戲引擎的專屬語法
-        // ==========================================
+  <div class="tower">
+    <div class="window one"></div>
+    <div class="window two"></div>
+    <div class="window three"></div>
+  </div>
 
-        // 1. 設定遊戲基本參數
-        const config = {
-            type: Phaser.AUTO, // 自動決定用 WebGL 或 Canvas 渲染（效能最好）
-            width: 800,        // 遊戲畫面寬度
-            height: 500,       // 遊戲畫面高度
-            parent: 'game-container', // 把遊戲塞進上面的 div 裡
-            physics: {
-                default: 'arcade', // 啟用街機物理引擎（處理碰撞）
-                arcade: { debug: false } // 如果改成 true，會看到碰撞框框
-            },
-            scene: {
-                preload: preload, // 第一步：載入圖片
-                create: create,   // 第二步：把圖片放進畫面
-                update: update    // 第三步：每秒更新 60 次的遊戲迴圈
-            }
-        };
+  <div class="card-wrap">
+    <div class="floating-card" id="card">
+      <div class="logo">MATH<br>RPG</div>
+      <div class="sub">Google 登入後，直接進入沉浸式大廳。</div>
+      <div class="status" id="status-pill">⚔️ 準備啟程</div>
+      <div class="actions">
+        <button class="primary-btn" id="login-btn">Google 登入啟程</button>
+        <button class="ghost-btn" id="continue-btn" style="display:none;">繼續冒險</button>
+      </div>
+      <div class="error" id="error-text"></div>
+      <div class="mini">
+        Web / Android / iPhone 瀏覽器皆可直接開啟。<br>
+        建議用 HTTPS 靜態主機或本機伺服器執行。
+      </div>
+    </div>
+  </div>
 
-        // 啟動遊戲！
-        const game = new Phaser.Game(config);
+  <script type="module">
+    import { primeAuth, watchUser, signInGoogle } from "./js/firebase-core.js";
+    import { registerServiceWorker } from "./js/app-shell.js";
 
-        // --- 全域變數 ---
-        let player;
-        let slime;
-        let cursors;
-        let keys;
+    registerServiceWorker();
+    const loginBtn = document.getElementById("login-btn");
+    const continueBtn = document.getElementById("continue-btn");
+    const statusPill = document.getElementById("status-pill");
+    const errorText = document.getElementById("error-text");
+    const card = document.getElementById("card");
 
-        // 【第一步】載入素材 (直接連線到 Phaser 官方免費圖庫)
-        function preload() {
-            // 我們不需要自己準備圖片，直接用網址抓官方的測試圖！
-            this.load.image('bg', 'https://labs.phaser.io/assets/skies/space3.png'); // 星空背景
-            this.load.image('spaceman', 'https://labs.phaser.io/assets/sprites/spaceman.png'); // 太空人
-            this.load.image('slime', 'https://labs.phaser.io/assets/sprites/slime.png'); // 史萊姆
-        }
+    await primeAuth();
 
-        // 【第二步】畫面佈置與設定
-        function create() {
-            // 1. 放上背景圖 (放在正中央)
-            this.add.image(400, 250, 'bg');
+    let currentUser = null;
+    watchUser((user, profile) => {
+      currentUser = user;
+      if (user && profile) {
+        statusPill.textContent = `✨ ${profile.name} · Lv.${profile.level} · ${profile.coins} G`;
+        loginBtn.style.display = "none";
+        continueBtn.style.display = "block";
+      } else {
+        statusPill.textContent = "⚔️ 準備啟程";
+        loginBtn.style.display = "block";
+        continueBtn.style.display = "none";
+      }
+    });
 
-            // 2. 創造史萊姆 (設為物理實體，放在座標 600, 250)
-            slime = this.physics.add.image(600, 250, 'slime');
-            slime.setImmovable(true); // 史萊姆很重，推不動
+    loginBtn.addEventListener("click", async () => {
+      errorText.textContent = "";
+      card.classList.add("loading");
+      try {
+        await signInGoogle();
+      } catch (error) {
+        errorText.textContent = "登入失敗：" + error.message;
+      } finally {
+        card.classList.remove("loading");
+      }
+    });
 
-            // 3. 創造玩家 (設為物理實體，放在座標 100, 250)
-            player = this.physics.add.image(100, 250, 'spaceman');
-            player.setCollideWorldBounds(true); // 絕對撞不穿畫面邊緣！(物理引擎魔法)
+    continueBtn.addEventListener("click", () => {
+      window.location.href = "./lobby.html";
+    });
 
-            // 4. 設定碰撞偵測！當玩家撞到史萊姆時，執行 hitSlime 函數
-            this.physics.add.collider(player, slime, hitSlime, null, this);
-
-            // 5. 啟用鍵盤方向鍵 (上下左右) 與 WASD
-            cursors = this.input.keyboard.createCursorKeys();
-            keys = this.input.keyboard.addKeys('W,A,S,D');
-
-            // 放一段文字
-            this.add.text(20, 20, '去撞那隻史萊姆！', { fontSize: '24px', fill: '#fff' });
-        }
-
-        // 【第三步】遊戲迴圈 (角色移動邏輯)
-        function update() {
-            // 每次更新前，先讓玩家停下來 (摩擦力)
-            player.setVelocity(0);
-
-            // 偵測鍵盤按下，給予速度 (Velocity)
-            const speed = 300; // 移動速度
-
-            if (cursors.left.isDown || keys.A.isDown) {
-                player.setVelocityX(-speed);
-            } else if (cursors.right.isDown || keys.D.isDown) {
-                player.setVelocityX(speed);
-            }
-
-            if (cursors.up.isDown || keys.W.isDown) {
-                player.setVelocityY(-speed);
-            } else if (cursors.down.isDown || keys.S.isDown) {
-                player.setVelocityY(speed);
-            }
-        }
-
-        // 當撞到史萊姆時會觸發的事情
-        function hitSlime(player, slime) {
-            // 把玩家彈開一點點，避免黏在一起
-            player.x -= 20;
-            // 遊戲內的提示
-            alert("⚔️ 遭遇野生史萊姆！(未來這裡會跳轉到 1-1 題庫)");
-        }
-    </script>
+    window.addEventListener("pageshow", () => {
+      if (currentUser) {
+        continueBtn.style.display = "block";
+      }
+    });
+  </script>
 </body>
 </html>

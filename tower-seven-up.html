@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#9edfff" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>Math RPG｜七上之塔</title>
+  <link rel="stylesheet" href="./styles/game-ui.css" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body class="scene-page">
+  <div id="game-root"></div>
+
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-chip">
+        <div class="scene-tag" id="hud-scene">七上之塔</div>
+      </div>
+      <div class="hud-chip">
+        <div class="player-meta">
+          <div class="player-name" id="hud-name">勇者</div>
+          <div class="player-stats"><span id="hud-level">Lv.1</span> · 💰 <span id="hud-coins">100</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="menu-anchor">
+        <button class="menu-button" id="menu-btn">☰</button>
+        <div class="menu-panel" id="menu-panel">
+          <button id="menu-home">回大廳</button>
+          <button id="menu-fullscreen">全螢幕</button>
+          <button id="menu-logout">登出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-pill" id="action-pill"></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="control-button up" data-key="up">▲</button>
+      <button class="control-button left" data-key="left">◀</button>
+      <button class="control-button right" data-key="right">▶</button>
+      <button class="control-button down" data-key="down">▼</button>
+    </div>
+    <div class="right-buttons">
+      <button class="control-button jump" data-key="jump">B</button>
+      <button class="control-button action" data-key="action">A</button>
+    </div>
+  </div>
+
+  <div class="scene-fade" id="scene-fade"></div>
+
+  <script type="module">
+    import { primeAuth, watchUser, signOutGoogle } from "./js/firebase-core.js";
+    import {
+      registerServiceWorker, getSceneState, saveSceneState, transitionTo, showToast,
+      updateHud, setupMenu, createControlState, bindControls, setActionHint
+    } from "./js/app-shell.js";
+    import { ensureSharedTextures } from "./js/pixel-art.js";
+
+    registerServiceWorker();
+    await primeAuth();
+
+    let userReady = false;
+    watchUser((user, profile) => {
+      userReady = true;
+      if (!user) {
+        showToast("請先登入", "warn", 1200);
+        setTimeout(() => transitionTo("./index.html"), 500);
+        return;
+      }
+      updateHud(profile, "七上之塔");
+    });
+
+    setupMenu({
+      onHome: () => transitionTo("./lobby.html"),
+      onLogout: async () => { await signOutGoogle(); transitionTo("./index.html"); },
+      homeLabel: "回大廳"
+    });
+
+    const controlState = bindControls(createControlState());
+
+    class TowerScene extends Phaser.Scene {
+      constructor() {
+        super("TowerScene");
+        this.activePrompt = null;
+        this.lastAction = false;
+        this.lastJump = false;
+        this.isTransitioning = false;
+      }
+
+      create() {
+        ensureSharedTextures(this);
+        const worldWidth = 4800;
+        const worldHeight = 1400;
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.setBackgroundColor("#a8e3ff");
+        this.cameras.main.roundPixels = true;
+
+        // Sky and clouds
+        for (let i = 0; i < 10; i += 1) {
+          const cloud = this.add.ellipse(
+            Phaser.Math.Between(0, worldWidth),
+            Phaser.Math.Between(80, 260),
+            Phaser.Math.Between(120, 220),
+            Phaser.Math.Between(40, 66),
+            0xffffff,
+            0.78
+          ).setScrollFactor(0.35, 0.35);
+          this.tweens.add({
+            targets: cloud,
+            x: cloud.x + Phaser.Math.Between(160, 280),
+            duration: Phaser.Math.Between(8000, 15000),
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          });
+        }
+
+        const wall = this.add.tileSprite(worldWidth / 2, 860, worldWidth, 1100, "tower-wall");
+        wall.setDepth(-20);
+
+        // Windows
+        const windowPositions = [420, 820, 1220, 1760, 2200, 2640, 3080, 3520, 3960, 4400];
+        [300, 660, 1020].forEach((y) => {
+          windowPositions.forEach((x) => this.add.image(x, y, "window").setDepth(-5).setAlpha(0.92));
+        });
+
+        this.platforms = this.physics.add.staticGroup();
+        const floors = [
+          { x: 700, y: 1180, w: 1400, h: 80 },
+          { x: 2200, y: 1180, w: 1800, h: 80 },
+          { x: 2080, y: 820, w: 2200, h: 80 },
+          { x: 3700, y: 460, w: 2000, h: 80 }
+        ];
+        floors.forEach(({ x, y, w, h }) => {
+          const floor = this.add.rectangle(x, y, w, h, 0xefdcc2).setDepth(0);
+          floor.setStrokeStyle(6, 0xc0a88a);
+          const body = this.physics.add.staticImage(x, y, "rock").setVisible(false);
+          body.body.setSize(w, h);
+          body.refreshBody();
+          this.platforms.add(body);
+        });
+
+        // Decorative stairs
+        const stair1 = this.add.image(1250, 1040, "stairs").setOrigin(0.5, 0.5).setDepth(1);
+        stair1.setScale(1.3, 1.15);
+        const stair2 = this.add.image(2860, 680, "stairs").setOrigin(0.5, 0.5).setDepth(1);
+        stair2.setScale(1.3, 1.15);
+
+        this.add.text(210, 1008, "大廳", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#23467a", fontStyle: "900" });
+        this.add.image(260, 1070, "door-open").setScale(1.1);
+        this.add.text(2120, 648, "1-1 負數與數線", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#23467a", fontStyle: "900" });
+        this.add.image(2260, 710, "door-open").setScale(1.12);
+        this.add.text(3180, 286, "1-2 因數與倍數", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#7b6b5a", fontStyle: "900" });
+        this.add.image(3320, 352, "door-open").setScale(1.05).setAlpha(0.52);
+        this.add.text(3320, 432, "LOCK", { fontFamily: "Noto Sans TC", fontSize: "18px", color: "#8d7255", fontStyle: "900" }).setOrigin(0.5, 0);
+
+        this.prompts = [
+          {
+            zone: this.makeZone(260, 1070, 120, 150),
+            label: "A 回大廳",
+            action: () => {
+              saveSceneState("tower", { x: this.player.x, y: this.player.y });
+              transitionTo("./lobby.html");
+            }
+          },
+          {
+            zone: this.makeZone(2260, 710, 130, 150),
+            label: "A 進入 1-1",
+            action: () => {
+              saveSceneState("tower", { x: this.player.x, y: this.player.y });
+              transitionTo("./chapter-1-1-field.html");
+            }
+          },
+          {
+            zone: this.makeZone(1250, 1030, 120, 150),
+            label: "▲ 上樓",
+            action: () => this.useStair(1580, 690)
+          },
+          {
+            zone: this.makeZone(1580, 700, 130, 150),
+            label: "▼ 下樓",
+            action: () => this.useStair(1250, 1040)
+          },
+          {
+            zone: this.makeZone(2860, 680, 120, 150),
+            label: "▲ 上樓",
+            action: () => this.useStair(3260, 330)
+          },
+          {
+            zone: this.makeZone(3260, 340, 130, 150),
+            label: "▼ 下樓",
+            action: () => this.useStair(2860, 680)
+          },
+          {
+            zone: this.makeZone(3320, 350, 130, 140),
+            label: "尚未開放",
+            action: () => showToast("這一扇門先保留給下一章", "warn", 1600)
+          }
+        ];
+
+        const start = getSceneState("tower", { x: 340, y: 1000 });
+        this.player = this.physics.add.sprite(start.x, start.y, "hero-side-idle");
+        this.player.setSize(14, 30);
+        this.player.setOffset(4, 2);
+        this.player.setCollideWorldBounds(true);
+        this.player.body.setGravityY(1450);
+        this.player.body.setMaxVelocity(280, 920);
+        this.physics.add.collider(this.player, this.platforms);
+
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        const zoom = Math.min(window.innerWidth / 760, window.innerHeight / 420);
+        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.0, 1.65));
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys("A,D,W,S,E,SPACE");
+        this.time.addEvent({
+          delay: 1200,
+          loop: true,
+          callback: () => saveSceneState("tower", { x: this.player.x, y: this.player.y })
+        });
+      }
+
+      makeZone(x, y, w, h) {
+        const zone = this.add.zone(x, y, w, h);
+        this.physics.world.enable(zone);
+        zone.body.setAllowGravity(false);
+        zone.body.moves = false;
+        return zone;
+      }
+
+      useStair(targetX, targetY) {
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        this.player.body.enable = false;
+        this.tweens.add({
+          targets: this.player,
+          x: targetX,
+          y: targetY,
+          duration: 460,
+          ease: "Sine.easeInOut",
+          onComplete: () => {
+            this.player.body.enable = true;
+            this.player.body.setVelocity(0, 0);
+            this.isTransitioning = false;
+          }
+        });
+      }
+
+      update() {
+        if (!userReady) return;
+        this.activePrompt = null;
+        this.prompts.forEach((item) => {
+          if (this.physics.overlap(this.player, item.zone)) this.activePrompt = item;
+        });
+        setActionHint(this.activePrompt ? this.activePrompt.label : "");
+
+        if (this.isTransitioning) return;
+
+        const left = this.cursors.left.isDown || this.keys.A.isDown || controlState.left;
+        const right = this.cursors.right.isDown || this.keys.D.isDown || controlState.right;
+        const up = this.cursors.up.isDown || this.keys.W.isDown || controlState.up;
+        const down = this.cursors.down.isDown || this.keys.S.isDown || controlState.down;
+        const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.space) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || (controlState.jump && !this.lastJump);
+        const actionPressed = this.keys.E.isDown || controlState.action;
+
+        if (left) {
+          this.player.setVelocityX(-235);
+          this.player.setFlipX(true);
+        } else if (right) {
+          this.player.setVelocityX(235);
+          this.player.setFlipX(false);
+        } else {
+          this.player.setVelocityX(0);
+        }
+
+        if (jumpPressed && this.player.body.blocked.down) {
+          this.player.setVelocityY(-540);
+        }
+
+        if (this.player.body.blocked.down) {
+          this.player.setTexture(Math.abs(this.player.body.velocity.x) > 5 ? "hero-side-run" : "hero-side-idle");
+        }
+
+        if (this.activePrompt && !this.lastAction) {
+          if ((this.activePrompt.label.includes("上樓") && up) ||
+              (this.activePrompt.label.includes("下樓") && down) ||
+              (this.activePrompt.label.includes("A") && actionPressed) ||
+              (this.activePrompt.label.includes("開放") && actionPressed)) {
+            this.activePrompt.action();
+          }
+        }
+
+        this.lastAction = actionPressed || up || down;
+        this.lastJump = controlState.jump;
+      }
+    }
+
+    const game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: "game-root",
+      backgroundColor: "#a8e3ff",
+      pixelArt: true,
+      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      physics: { default: "arcade", arcade: { gravity: { y: 0 }, debug: false } },
+      scene: [TowerScene]
+    });
+
+    window.addEventListener("resize", () => game.scale.resize(window.innerWidth, window.innerHeight));
+  </script>
+</body>
+</html>

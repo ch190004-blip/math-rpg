@@ -2,192 +2,675 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CH 1-1 負數與數線 - 史萊姆原野</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><meta name="theme-color" content="#0f172a">
+    <title>1-1 負數與數線 - 數位互動題庫</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; touch-action: none; font-family: sans-serif; }
-        #game-container { width: 100vw; height: 100vh; }
-        
-        /* 回大廳按鈕 (蓋在遊戲畫面上方) */
-        .back-btn {
-            position: absolute; top: 20px; left: 20px; z-index: 100;
-            background: rgba(15, 23, 42, 0.8); color: #22d3ee; border: 2px solid #22d3ee;
-            padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; text-decoration: none;
-        }
-        
-        /* 戰鬥轉場黑幕 */
-        .battle-transition {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #000; z-index: 9999;
-            opacity: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #f43f5e; font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 20px rgba(244, 63, 94, 0.8);
-        }
-        .battle-transition.active { opacity: 1; pointer-events: all; animation: encounterFlash 1.2s ease-in-out forwards; }
-        @keyframes encounterFlash {
-            0% { background-color: transparent; opacity: 0; transform: scale(1); }
-            10% { background-color: white; opacity: 1; transform: scale(1.05); }
-            20% { background-color: black; transform: scale(1); }
-            30% { background-color: white; }
-            40% { background-color: black; }
-            100% { background-color: black; opacity: 1; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        :root {
+            /* Cyberpunk / Dark Theme Palette */
+            --bg-color: #0f172a; 
+            --card-bg: #1e293b; 
+            --surface-hover: #334155; 
+            --accent-main: #22d3ee; 
+            --accent-hover: #06b6d4;
+            --accent-glow: rgba(34, 211, 238, 0.4);
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --border-color: #334155;
+            --danger: #f43f5e;
+            --success: #10b981;
+            --warning: #f59e0b;
         }
 
-        /* 手機虛擬搖桿 (疊在遊戲畫面上) */
-        .dpad-container {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: none; flex-direction: column; align-items: center; gap: 10px; z-index: 100; user-select: none;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+            overflow-x: hidden;
         }
-        .dpad-row { display: flex; gap: 15px; }
-        .dpad-btn {
-            width: 60px; height: 60px; background: rgba(15, 23, 42, 0.6); border: 2px solid #22d3ee; border-radius: 50%;
-            font-size: 24px; color: #22d3ee; display: flex; justify-content: center; align-items: center;
-            touch-action: none; -webkit-tap-highlight-color: transparent;
+
+        /* --- Header & Player Status --- */
+        .top-bar {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 20;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        .dpad-btn.active { background: #22d3ee; color: #000; transform: scale(0.95); }
-        @media (max-width: 850px) { .dpad-container { display: flex; } }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--accent-main);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        }
+
+        /* 新增：玩家狀態區塊 */
+        .player-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .login-btn {
+            background: var(--accent-main);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .login-btn:hover { background: var(--text-main); box-shadow: 0 0 10px var(--accent-glow); }
+
+        .modal-btn {
+            background: transparent;
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-btn:hover { background: rgba(245, 158, 11, 0.1); box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+
+        /* --- Main Layout & Sidebar --- */
+        .container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 320px; background-color: rgba(15, 23, 42, 0.95); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 1.5rem 1rem; gap: 0.75rem; overflow-y: auto; flex-shrink: 0; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: var(--bg-color); }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: var(--accent-main); }
+        .sidebar-title { font-size: 1.1rem; font-weight: bold; color: var(--accent-main); margin-bottom: 0.5rem; text-align: center; letter-spacing: 1px; flex-shrink: 0; }
+        .type-btn { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1rem; text-align: left; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; min-height: max-content; }
+        .type-btn::before { content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: transparent; transition: background 0.3s; }
+        .type-btn:hover { border-color: var(--accent-main); background-color: var(--surface-hover); transform: translateY(-2px); }
+        .type-btn.active { background: rgba(34, 211, 238, 0.05); border-color: var(--accent-main); box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.1); }
+        .type-btn.active::before { background: var(--accent-main); box-shadow: 0 0 10px var(--accent-main); }
+        .type-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); }
+        .type-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; }
+        .sub-label { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border: 1px solid var(--border-color); }
+        .tag { font-size: 0.75rem; color: var(--accent-main); background: rgba(34, 211, 238, 0.1); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: monospace; }
+        .label-hard { background: rgba(244, 63, 94, 0.1); color: var(--danger); border-color: rgba(244, 63, 94, 0.3); }
+        .label-normal { background: rgba(245, 158, 11, 0.1); color: var(--warning); border-color: rgba(245, 158, 11, 0.3); }
+
+        /* --- Main Content Area --- */
+        .main-content { flex: 1; padding: 2rem; overflow-y: auto; position: relative; display: flex; flex-direction: column; align-items: center; }
+        .timer-wrapper { position: absolute; top: 1rem; right: 2rem; z-index: 10; }
+        #timer { font-family: monospace; font-size: 1.5rem; color: var(--accent-main); font-weight: 900; background: rgba(15, 23, 42, 0.8); padding: 0.25rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(34, 211, 238, 0.5); transition: all 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .timer-stopped { color: var(--text-muted) !important; border-color: var(--border-color) !important; box-shadow: none !important; }
+        
+        .question-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2.5rem; width: 100%; max-width: 850px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); position: relative; margin-top: 1.5rem; }
+        .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border-color); }
+        .q-badge { background: rgba(34, 211, 238, 0.1); color: var(--accent-main); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 700; border: 1px solid rgba(34, 211, 238, 0.3); letter-spacing: 1px; }
+        .q-text { font-size: 1.25rem; line-height: 1.8; margin-bottom: 2rem; }
+
+        /* --- 新增：作答區樣式 --- */
+        .answer-area { background: rgba(15, 23, 42, 0.5); border: 2px dashed var(--accent-main); border-radius: 10px; padding: 1.5rem; text-align: center; margin-bottom: 1.5rem; transition: all 0.3s; }
+        .answer-area.success-pulse { border-color: var(--success); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        .answer-input { background: var(--bg-color); color: var(--accent-main); border: 1px solid var(--border-color); padding: 0.8rem; font-size: 1.5rem; border-radius: 8px; width: 150px; text-align: center; font-weight: bold; margin: 0 10px; }
+        .answer-input:focus { outline: none; border-color: var(--accent-main); box-shadow: 0 0 10px var(--accent-glow); }
+        
+        /* --- Action Buttons --- */
+        .action-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .btn { padding: 1rem; border-radius: 0.75rem; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; border: none; display: flex; justify-content: center; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .btn:active { transform: scale(0.98); }
+        .btn-hint { background: #475569; color: var(--text-main); }
+        .btn-hint:hover { background: #64748b; box-shadow: 0 0 15px rgba(100, 116, 139, 0.5); }
+        .btn-ans { background: var(--success); color: white; border: 1px solid #059669; }
+        .btn-ans:hover { background: #059669; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+        .btn-next-calc { background: #2563eb; color: white; border: 1px solid #60a5fa; }
+        .btn-next-calc:hover { background: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+        .btn-next-app { background: #7c3aed; color: white; border: 1px solid #a78bfa; }
+        .btn-next-app:hover { background: #8b5cf6; box-shadow: 0 0 15px rgba(139, 92, 246, 0.55); }
+
+        /* --- Sections & Modal --- */
+        .hint-section, .answer-section { display: none; margin-top: 1.5rem; padding: 1.5rem; border-radius: 0.75rem; animation: fadeIn 0.3s ease-in; font-size: 1.1rem; }
+        .hint-section { background: rgba(245, 158, 11, 0.05); border-left: 4px solid var(--warning); color: var(--text-muted); }
+        .hint-section::before { content: '💡 解題思路：'; display: block; color: var(--warning); font-weight: bold; margin-bottom: 0.5rem; }
+        .answer-section { background: rgba(16, 185, 129, 0.05); border-left: 4px solid var(--success); color: var(--success); font-weight: bold; font-size: 1.25rem; }
+        .answer-section::before { content: '🎯 驗證結果：'; display: block; color: var(--success); font-weight: bold; margin-bottom: 0.5rem; font-size: 1.1rem;}
+        
+        i { font-family: 'Times New Roman', serif; font-style: italic; margin: 0 0.1rem; color: #bae6fd; font-weight: bold;}
+        .frac { display: inline-flex; flex-direction: column; vertical-align: middle; margin: 0 0.3rem; align-items: center; justify-content: center; line-height: 1.1; font-family: 'Times New Roman', serif; font-size: 1.1em; color: #bae6fd; font-weight: bold; }
+        .frac .num { border-bottom: 1px solid currentColor; padding: 0 0.2rem; display: block; }
+        .frac .den { padding: 0 0.2rem; display: block; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: var(--card-bg); border: 2px solid var(--accent-main); border-radius: 1rem; padding: 2rem; max-width: 650px; width: 90%; box-shadow: 0 0 30px var(--accent-glow); position: relative; transform: translateY(-20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-close { position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: color 0.2s; }
+        .modal-close:hover { color: var(--danger); }
+        .core-rules ul { list-style: none; margin-top: 1rem; }
+        .core-rules li { margin-bottom: 1rem; padding-left: 1.5rem; position: relative; line-height: 1.6; }
+        .core-rules li::before { content: '⚡'; position: absolute; left: 0; color: var(--warning); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+
+        .game-shell-bar {
+            position: fixed;
+            left: 1rem;
+            right: 1rem;
+            top: 1rem;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+        .game-shell-actions {
+            display: flex;
+            gap: 0.75rem;
+            pointer-events: auto;
+        }
+        .game-shell-btn {
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text-main);
+            border: 1px solid rgba(34, 211, 238, 0.35);
+            padding: 0.75rem 1rem;
+            border-radius: 999px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+        }
+        .game-shell-btn:hover { border-color: var(--accent-main); box-shadow: 0 0 15px rgba(34, 211, 238, 0.28); }
+        .battle-tag {
+            background: rgba(34, 211, 238, 0.14);
+            color: var(--accent-main);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+            padding: 0.75rem 1rem;
+            border-radius: 999px;
+            font-weight: 800;
+            pointer-events: auto;
+        }
+        .battle-return-btn {
+            display: none;
+            margin-top: 1rem;
+            width: 100%;
+            background: linear-gradient(90deg, #14b8a6, #22c55e);
+            color: white;
+            border: none;
+            padding: 0.9rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.25);
+        }
+        .battle-return-btn.show { display: block; }
+        .battle-hud-note {
+            margin-top: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 850px) {
+            .container { flex-direction: column; overflow: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); max-height: 300px; flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+            .sidebar-title { width: 100%; text-align: left; }
+            .type-btn { width: calc(50% - 0.5rem); }
+            .main-content { padding: 1rem; overflow-y: visible; }
+            .timer-wrapper { position: relative; top: 0; right: 0; width: 100%; text-align: right; margin-bottom: 1rem; }
+            #timer { display: inline-block; font-size: 1.2rem; }
+            .action-group { grid-template-columns: 1fr; }
+            .question-card { padding: 1.5rem; margin-top: 0; }
+            .game-shell-bar { left: 0.75rem; right: 0.75rem; top: 0.75rem; }
+            .game-shell-actions { width: 100%; justify-content: space-between; }
+            .game-shell-btn, .battle-tag { padding: 0.65rem 0.85rem; font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body>
 
-    <a href="index.html" class="back-btn">🏠 撤退回大廳</a>
-    <div id="game-container"></div>
-    <div id="battle-transition" class="battle-transition"></div>
+    <div class="game-shell-bar">
+        <div class="game-shell-actions">
+            <button class="game-shell-btn" onclick="returnToField()">🏹 返回原野</button>
+            <button class="game-shell-btn" onclick="window.location.href='tower-seven-up.html'">🗼 七上之塔</button>
+        </div>
+        <div class="battle-tag" id="battle-tag">戰鬥中</div>
+    </div>
 
-    <div class="dpad-container">
-        <div class="dpad-btn" id="btn-up">⬆️</div>
-        <div class="dpad-row">
-            <div class="dpad-btn" id="btn-left">⬅️</div>
-            <div class="dpad-btn" id="btn-down">⬇️</div>
-            <div class="dpad-btn" id="btn-right">➡️</div>
+
+    <header class="top-bar">
+        <div class="page-title">CH 1-1 負數與數線</div>
+        
+        <div class="player-status">
+            <div id="player-info" style="display: none; align-items: center; gap: 10px;">
+                <span id="player-name" style="font-weight: bold; color: var(--accent-main);"></span>
+                <span style="color: var(--warning);">💰 <span id="player-coins">0</span></span>
+            </div>
+            <button id="auth-btn" class="login-btn" onclick="handleAuth()">登入系統</button>
+        </div>
+
+        <button class="modal-btn" onclick="toggleModal(true)">⚡ 破解核心心法</button>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-title">🌐 題型終端機</div>
+            <div class="type-btn active" onclick="selectType(1, this)">
+                <div class="type-title">題型一：相反意義的量(一)</div>
+                <div class="type-meta"><span class="sub-label">正負符號與平均基準</span><span class="tag">基礎</span></div>
+            </div>
+            <div class="type-btn" onclick="selectType(2, this)">
+                <div class="type-title">題型二：相反意義的量(二)</div>
+                <div class="type-meta"><span class="sub-label">正負符號與增減表徵</span><span class="tag">基礎</span></div>
+            </div>
+            </aside>
+
+        <main class="main-content">
+            <div class="timer-wrapper"><div id="timer">00:00</div></div>
+
+            <div class="question-card">
+                <div class="q-header"><span class="q-badge" id="modeBadge">基礎情境</span></div>
+                
+                <div class="q-text" id="qText"></div>
+                
+                <div class="answer-area" id="answer-area">
+                    <label style="font-size: 1.2rem;">👉 你的答案：</label>
+                    <input type="text" id="student-answer" class="answer-input" placeholder="輸入數字">
+                    <button class="btn btn-ans" onclick="checkAnswer()" style="display: inline-block; padding: 0.8rem 1.5rem;">🔥 送出攻擊</button>
+                    <div id="feedback-msg" style="margin-top: 15px; font-weight: bold; font-size: 1.2rem;"></div>
+                </div>
+
+                <div class="hint-section" id="hText"></div>
+                <div class="answer-section" id="aText"></div>
+
+                <div class="action-group">
+                    <button class="btn btn-hint" onclick="showHint()">👁️ 掃描解題思路</button>
+                    <button class="btn btn-next-calc" onclick="generateQuestion(false)">🔄 基礎情境 (換一題)</button>
+                    <button class="btn btn-next-app" onclick="generateQuestion(true)">🚀 現代素養 (換一題)</button>
+                </div>
+                <button id="battle-return-btn" class="battle-return-btn" onclick="returnToField()">⚔️ 勝利後返回 1-1 原野</button>
+                <div class="battle-hud-note" id="battle-note"></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="coreModal" onclick="if(event.target===this) toggleModal(false)">
+        <div class="modal-content">
+            <span class="modal-close" onclick="toggleModal(false)">&times;</span>
+            <h2 style="color: var(--accent-main); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">⚡ 核心心法資料庫</h2>
+            <div class="core-rules">
+                <ul>
+                    <li><strong style="color:var(--accent-main)">正負相對性：</strong>生活中的量具有相對性。若規定一方為正(＋)，則另一方即為負(－)。</li>
+                </ul>
+            </div>
         </div>
     </div>
 
-    <script>
-        const config = {
-            type: Phaser.AUTO,
-            scale: {
-                mode: Phaser.Scale.RESIZE, // 讓畫布自動填滿手機螢幕
-                parent: 'game-container',
-                width: '100%',
-                height: '100%'
-            },
-            physics: {
-                default: 'arcade',
-                arcade: { debug: false }
-            },
-            scene: { preload: preload, create: create, update: update }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // 載入 Firestore 與「增加數值(increment)」的工具
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // 你的專屬金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjcI122qYfHW9ibPLz-XG8kleDq4r2pF8",
+            authDomain: "math-rpg-test.firebaseapp.com",
+            projectId: "math-rpg-test",
+            storageBucket: "math-rpg-test.firebasestorage.app",
+            messagingSenderId: "593199481365",
+            appId: "1:593199481365:web:7ad8656ff4aef6d0ca841c"
         };
 
-        const game = new Phaser.Game(config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        const db = getFirestore(app);
 
-        let player;
-        let slimes;
-        let cursors;
-        let keys;
-        let isTransitioning = false;
+        const urlParams = new URLSearchParams(window.location.search);
+        const battleContext = {
+            active: urlParams.get("battle") === "1",
+            qType: Math.max(1, Math.min(2, parseInt(urlParams.get("qType") || "1", 10))),
+            mode: urlParams.get("mode") === "app" ? "app" : "standard",
+            returnTo: urlParams.get("returnTo") || "chapter-1-1-field.html",
+            label: decodeURIComponent(urlParams.get("label") || "1-1 戰鬥")
+        };
 
-        // 【1. 載入素材】
-        function preload() {
-            // 我們直接抓你 GitHub assets 資料夾裡的圖，如果找不到會破圖，請確保你有上傳！
-            // 如果你想先用官方測試圖，可以把下面這兩行換成官方網址
-            this.load.image('player', 'assets/player.png'); 
-            this.load.image('slime', 'assets/slime.png');
-            
-            // 備用：如果你還沒傳圖片，請刪除上面兩行，解除下面兩行的註解來測試
-            // this.load.image('player', 'https://labs.phaser.io/assets/sprites/spaceman.png');
-            // this.load.image('slime', 'https://labs.phaser.io/assets/sprites/slime.png');
+        // --- 遊戲狀態全域變數 ---
+        let currentType = 1;
+        let isCurrentApp = false;
+        let timerInterval; 
+        let seconds = 0;
+        
+        // 【新增】後端驗證變數
+        let currentUserUID = null;       // 記錄目前登入的學生 UID
+        let currentCorrectAnswer = "";   // 記錄當前題目的純數字標準答案
+        let hasAnsweredCorrectly = false; // 防止重複送出洗金幣
+
+        // ==========================================
+        // 1. Firebase 登入與資料庫讀取邏輯
+        // ==========================================
+        window.handleAuth = function() {
+            if (currentUserUID) {
+                // 已登入狀態按鈕，執行登出
+                signOut(auth).then(() => {
+                    currentUserUID = null;
+                    document.getElementById('player-info').style.display = 'none';
+                    document.getElementById('auth-btn').innerText = '登入系統';
+                    document.getElementById('auth-btn').style.background = 'var(--accent-main)';
+                });
+            } else {
+                // 未登入狀態，執行 Google 登入
+                signInWithPopup(auth, provider).then(async (result) => {
+                    const user = result.user;
+                    currentUserUID = user.uid;
+                    
+                    document.getElementById('auth-btn').innerText = '登出';
+                    document.getElementById('auth-btn').style.background = 'var(--danger)';
+                    document.getElementById('player-info').style.display = 'flex';
+                    document.getElementById('player-name').innerText = user.displayName;
+
+                    // 讀取或建立 Firestore 存檔
+                    const userDocRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userDocRef);
+
+                    if (docSnap.exists()) {
+                        document.getElementById('player-coins').innerText = docSnap.data().coins;
+                    } else {
+                        // 新玩家送 100 金幣
+                        await setDoc(userDocRef, {
+                            name: user.displayName, email: user.email,
+                            level: 1, exp: 0, coins: 100
+                        });
+                        document.getElementById('player-coins').innerText = 100;
+                        alert("🎉 歡迎新勇者！獲得新手禮包 100 金幣！");
+                    }
+                }).catch((error) => {
+                    alert("登入失敗：" + error.message);
+                });
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserUID = user.uid;
+                document.getElementById('auth-btn').innerText = '登出';
+                document.getElementById('auth-btn').style.background = 'var(--danger)';
+                document.getElementById('player-info').style.display = 'flex';
+                document.getElementById('player-name').innerText = user.displayName || '勇者';
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    document.getElementById('player-coins').innerText = docSnap.data().coins ?? 0;
+                } else {
+                    await setDoc(userDocRef, {
+                        name: user.displayName || '勇者', email: user.email || '',
+                        level: 1, exp: 0, coins: 100
+                    });
+                    document.getElementById('player-coins').innerText = 100;
+                }
+            } else {
+                currentUserUID = null;
+                document.getElementById('player-info').style.display = 'none';
+                document.getElementById('auth-btn').innerText = '登入系統';
+                document.getElementById('auth-btn').style.background = 'var(--accent-main)';
+            }
+        });
+
+        function handleBattleVictory() {
+            document.getElementById('battle-return-btn').classList.add('show');
+            document.getElementById('battle-note').innerText = '已完成目前戰鬥，返回原野可繼續遭遇其他史萊姆。';
+            try {
+                localStorage.setItem('mathRpgBattleResult', JSON.stringify({
+                    scene: 'chapter-1-1-field',
+                    coins: 10,
+                    exp: 50,
+                    qType: currentType,
+                    mode: isCurrentApp ? 'app' : 'standard',
+                    at: Date.now()
+                }));
+            } catch (error) {
+                console.warn(error);
+            }
         }
 
-        // 【2. 創造世界】
-        function create() {
-            // 設定原野的範圍 (2000x2000 超大地圖)
-            this.physics.world.setBounds(0, 0, 2000, 2000);
-            
-            // 畫出地板網格 (用來感受移動)
-            this.add.grid(1000, 1000, 2000, 2000, 50, 50, 0x064e3b, 1, 0x0f766e, 0.5);
+        window.returnToField = function() {
+            const target = battleContext.returnTo || 'chapter-1-1-field.html';
+            window.location.href = target;
+        };
 
-            // 創造勇者
-            player = this.physics.add.image(1000, 1000, 'player');
-            player.setCollideWorldBounds(true);
+        // ==========================================
+        // 2. 批改與金幣發放邏輯 (核心升級區)
+        // ==========================================
+        window.checkAnswer = async function() {
+            if (hasAnsweredCorrectly) return; // 已經答對就不理他
 
-            // 讓攝影機永遠跟著勇者！
-            this.cameras.main.setBounds(0, 0, 2000, 2000);
-            this.cameras.main.startFollow(player, true, 0.05, 0.05);
+            let studentInput = document.getElementById('student-answer').value.trim();
+            let feedbackEl = document.getElementById('feedback-msg');
+            let answerAreaEl = document.getElementById('answer-area');
 
-            // 隨機產生 15 隻史萊姆
-            slimes = this.physics.add.group();
-            for (let i = 0; i < 15; i++) {
-                let x = Phaser.Math.Between(100, 1900);
-                let y = Phaser.Math.Between(100, 1900);
-                let slime = slimes.create(x, y, 'slime');
+            if (studentInput === "") {
+                feedbackEl.innerText = "⚠️ 勇者，請輸入數字發動攻擊！";
+                feedbackEl.style.color = "var(--warning)";
+                return;
+            }
+
+            // 比對答案 (為避免正號問題，統一轉字串比較)
+            const normalizedAnswer = currentCorrectAnswer.toString().replace(/^\+/, '');
+            if (
+                studentInput === currentCorrectAnswer ||
+                studentInput === normalizedAnswer ||
+                studentInput === "+" + normalizedAnswer
+            ) {
+                // 答對了！
+                hasAnsweredCorrectly = true;
+                stopTimer();
+                document.getElementById('aText').style.display = 'block'; // 顯示詳細解答
+                answerAreaEl.classList.add('success-pulse'); // 加上綠色光暈特效
                 
-                slime.setCollideWorldBounds(true);
-                slime.setBounce(1); // 撞到邊界會反彈
-                // 給史萊姆隨機的移動速度 (Roaming AI)
-                slime.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+                if (currentUserUID) {
+                    // 有登入 -> 呼叫資料庫發放金幣
+                    feedbackEl.innerHTML = "🎉 攻擊成功！獲得 <span style='color:gold;'>💰 10 枚金幣</span>！";
+                    feedbackEl.style.color = "var(--success)";
+                    
+                    // 寫入 Firestore (使用 increment 自動加 10，不用怕資料衝突)
+                    const userRef = doc(db, "users", currentUserUID);
+                    await updateDoc(userRef, {
+                        coins: increment(10),
+                        exp: increment(50)
+                    });
+                    
+                    // 更新畫面上方的金幣顯示數字
+                    let currentCoins = parseInt(document.getElementById('player-coins').innerText);
+                    document.getElementById('player-coins').innerText = currentCoins + 10;
+                    
+                } else {
+                    // 沒登入 -> 只給提示
+                    feedbackEl.innerText = "🎉 攻擊成功！(提示：登入系統即可將金幣存入背包喔！)";
+                    feedbackEl.style.color = "var(--success)";
+                }
+                handleBattleVictory();
+            } else {
+                // 答錯了！
+                feedbackEl.innerText = "❌ 攻擊無效！被護盾擋下了，請檢查正負號或查看解題思路！";
+                feedbackEl.style.color = "var(--danger)";
+            }
+        };
+
+        // ==========================================
+        // 3. 遊戲原有的 UI 與題目產生邏輯
+        // ==========================================
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function formatTimer(sec) {
+            let m = Math.floor(sec / 60).toString().padStart(2, '0');
+            let s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            const el = document.getElementById('timer');
+            el.innerText = "00:00";
+            el.classList.remove('timer-stopped');
+            timerInterval = setInterval(() => { seconds++; el.innerText = formatTimer(seconds); }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timer').classList.add('timer-stopped');
+        }
+
+        window.selectType = function(type, element) {
+            document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+            if (element) element.classList.add('active');
+            else {
+                const targetBtn = Array.from(document.querySelectorAll('.type-btn')).find(btn => btn.innerText.includes(type === 1 ? '題型一' : '題型二'));
+                if (targetBtn) targetBtn.classList.add('active');
+            }
+            currentType = type;
+            window.generateQuestion(false);
+        };
+
+        window.toggleModal = function(show) {
+            const modal = document.getElementById('coreModal');
+            if(show) modal.classList.add('active'); else modal.classList.remove('active');
+        };
+
+        window.showHint = function() { 
+            document.getElementById('hText').style.display = 'block'; 
+            document.getElementById('hText').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        window.generateQuestion = function(isApp) {
+            isCurrentApp = isApp;
+            hasAnsweredCorrectly = false; // 重置答題狀態
+            
+            // 重置 UI
+            document.getElementById('hText').style.display = 'none';
+            document.getElementById('aText').style.display = 'none';
+            document.getElementById('student-answer').value = '';
+            document.getElementById('feedback-msg').innerText = '';
+            document.getElementById('answer-area').classList.remove('success-pulse');
+            document.getElementById('battle-return-btn').classList.remove('show');
+            document.getElementById('battle-note').innerText = battleContext.active ? '擊敗此戰後可返回 1-1 原野。' : '';
+            
+            const badge = document.getElementById('modeBadge');
+            if (isApp) {
+                badge.innerText = '🚀 現代素養情境';
+                badge.style.color = '#e879f9';
+                badge.style.borderColor = 'rgba(217, 70, 239, 0.3)';
+            } else {
+                badge.innerText = '📝 課本標準情境';
+                badge.style.color = 'var(--accent-main)';
+                badge.style.borderColor = 'rgba(34, 211, 238, 0.3)';
             }
 
-            // 設定碰撞：勇者撞到史萊姆時，執行 hitEnemy
-            this.physics.add.collider(player, slimes, hitEnemy, null, this);
+            let qHTML = '', hHTML = '', aHTML = '';
 
-            // 綁定鍵盤
-            cursors = this.input.keyboard.createCursorKeys();
-            keys = this.input.keyboard.addKeys('W,A,S,D');
+            // 這裡保留你原本的題型邏輯，為了實驗我們專注在 case 1
+            switch(currentType) {
+                case 1: 
+                    {
+                        let base = rand(60, 85);
+                        let pDiff = rand(3, 15);
+                        let nDiffBase = rand(2, 12);
+                        let nDiff = -nDiffBase;
+                        
+                        if (!isApp) {
+                            qHTML = `某次數學平時測驗以全班平均分數 <i>${base}</i> 分為基準。若小妍考了 <i>${base + pDiff}</i> 分，記為 <i>+${pDiff}</i> 分；那麼小翊考了 <i>${base + nDiff}</i> 分，在紀錄表上應記為什麼數字？(請直接輸入數字包含正負號)`;
+                            hHTML = `基準點設為 0。<br>比基準高記為正號 (＋)，比基準低則記為負號 (－)。<br>小翊的分數比平均少 <i>${nDiffBase}</i> 分。`;
+                            aHTML = `應記為 <i>${nDiff}</i> 分`;
+                        } else {
+                            qHTML = `在星際物資運輸系統中，標準貨物艙的規定基準重量為 <i>${base}</i> 噸。系統感測器設定：重量超出基準 <i>${pDiff}</i> 噸時發送訊號 <i>+${pDiff}</i>。今日查核發現某貨物艙重量僅有 <i>${base + nDiff}</i> 噸，請問系統感測器會發送什麼數值的訊號？`;
+                            hHTML = `以標準重量為基準(0)。超重為正，不足為負。<br>該貨艙比基準輕了 <i>${nDiffBase}</i> 噸，應以負數表示。`;
+                            aHTML = `發送訊號 <i>${nDiff}</i>`;
+                        }
+                        
+                        // 【最關鍵】將此題的純數字答案記錄到後台準備批改
+                        currentCorrectAnswer = nDiff.toString();
+                    }
+                    break;
+                case 2:
+                    {
+                        let base = rand(50, 95);
+                        let rise = rand(4, 18);
+                        let fall = rand(3, 16);
+                        let answer = (rise - fall);
+                        let eventLabel = [
+                            ['社群粉絲數', '新增追蹤', '退追蹤'],
+                            ['倉庫存貨量', '進貨', '出貨'],
+                            ['班級點數', '加分', '扣分'],
+                            ['遊戲能量值', '回復', '消耗']
+                        ][rand(0, 3)];
 
-            // 綁定虛擬搖桿
-            setupVirtualJoystick();
-        }
+                        if (!isApp) {
+                            qHTML = `某項 ${eventLabel[0]} 以原本數量 <i>${base}</i> 為基準。先 ${eventLabel[1]} <i>${rise}</i>，再 ${eventLabel[2]} <i>${fall}</i>。若用正負數表示相對於原本數量的變化，最後應記為什麼數字？`;
+                            hHTML = `先增加記為 <i>+${rise}</i>，再減少記為 <i>-${fall}</i>。<br>把變化量合併：<i>+${rise}</i> 與 <i>-${fall}</i>。`;
+                            aHTML = `最後應記為 <i>${answer >= 0 ? '+' + answer : answer}</i>`;
+                        } else {
+                            let places = [
+                                ['校園太陽能儲電量', '充入', '消耗'],
+                                ['直播頻道即時人氣', '湧入', '離開'],
+                                ['電動滑板車電量', '回充', '使用']
+                            ][rand(0, 2)];
+                            qHTML = `${places[0]} 以目前標準值 <i>${base}</i> 為起點。系統先偵測到 ${places[1]} <i>${rise}</i> 單位，接著又 ${places[2]} <i>${fall}</i> 單位。若只記錄相對變化量，最後畫面會顯示什麼數字？`;
+                            hHTML = `相對變化量只看「增加或減少了多少」。<br>先記 <i>+${rise}</i>，再記 <i>-${fall}</i>，再把兩個變化量相加。`;
+                            aHTML = `畫面會顯示 <i>${answer >= 0 ? '+' + answer : answer}</i>`;
+                        }
 
-        // 【3. 遊戲迴圈】
-        function update() {
-            if (isTransitioning) return;
-
-            player.setVelocity(0);
-            const speed = 250;
-
-            if (cursors.left.isDown || keys.A.isDown || virtualKeys.left) player.setVelocityX(-speed);
-            else if (cursors.right.isDown || keys.D.isDown || virtualKeys.right) player.setVelocityX(speed);
-            
-            if (cursors.up.isDown || keys.W.isDown || virtualKeys.up) player.setVelocityY(-speed);
-            else if (cursors.down.isDown || keys.S.isDown || virtualKeys.down) player.setVelocityY(speed);
-        }
-
-        // 【4. 戰鬥觸發邏輯】
-        function hitEnemy(player, slime) {
-            if (isTransitioning) return;
-            isTransitioning = true;
-            
-            // 讓勇者跟史萊姆停下來
-            player.setVelocity(0);
-            slime.setVelocity(0);
-
-            // 啟動轉場特效
-            const transitionEl = document.getElementById('battle-transition');
-            transitionEl.innerHTML = `<div>⚔️ 遭遇題型怪物！<br><span style="font-size: 1.8rem; color: #22d3ee;">進入戰鬥結界...</span></div>`;
-            transitionEl.classList.add('active'); 
-            
-            // 1.2 秒後，跳轉到你的 1-1 戰鬥答題網頁！
-            setTimeout(() => {
-                window.location.href = '1-1-battle.html';
-            }, 1200);
-        }
-
-        // --- 虛擬搖桿設定區 ---
-        const virtualKeys = { up: false, down: false, left: false, right: false };
-        function setupVirtualJoystick() {
-            function bindBtn(btnId, keyName) {
-                const btn = document.getElementById(btnId);
-                const press = (e) => { e.preventDefault(); virtualKeys[keyName] = true; btn.classList.add('active'); };
-                const release = (e) => { e.preventDefault(); virtualKeys[keyName] = false; btn.classList.remove('active'); };
-                btn.addEventListener('touchstart', press, {passive: false});
-                btn.addEventListener('mousedown', press);
-                btn.addEventListener('touchend', release, {passive: false});
-                btn.addEventListener('mouseup', release);
-                btn.addEventListener('mouseleave', release);
+                        currentCorrectAnswer = (answer >= 0 ? '+' + answer : answer.toString());
+                    }
+                    break;
+                default:
+                    qHTML = "此題型尚在開發升級中...";
+                    currentCorrectAnswer = "999";
+                    break;
             }
-            bindBtn('btn-up', 'up'); bindBtn('btn-down', 'down');
-            bindBtn('btn-left', 'left'); bindBtn('btn-right', 'right');
+
+            document.getElementById('qText').innerHTML = qHTML;
+            document.getElementById('hText').innerHTML = hHTML;
+            document.getElementById('aText').innerHTML = aHTML;
+            startTimer();
+        };
+
+        function applyBattlePreset() {
+            if (!battleContext.active) {
+                document.getElementById('battle-tag').innerText = '自由練習';
+                return;
+            }
+            document.getElementById('battle-tag').innerText = battleContext.label || '1-1 戰鬥';
+            currentType = battleContext.qType;
+            document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+            const targetBtn = Array.from(document.querySelectorAll('.type-btn')).find(btn => btn.innerText.includes(battleContext.qType === 1 ? '題型一' : '題型二'));
+            if (targetBtn) targetBtn.classList.add('active');
+            window.generateQuestion(battleContext.mode === 'app');
         }
+
+        // 啟動第一題
+        window.onload = () => {
+            if (battleContext.active) applyBattlePreset();
+            else window.generateQuestion(false);
+        };
     </script>
 </body>
 </html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#7ed6ff" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>Math RPG｜大廳原野</title>
+  <link rel="stylesheet" href="./styles/game-ui.css" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body class="scene-page">
+  <div id="game-root"></div>
+
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-chip">
+        <div class="scene-tag" id="hud-scene">大廳原野</div>
+      </div>
+      <div class="hud-chip">
+        <div class="player-meta">
+          <div class="player-name" id="hud-name">勇者</div>
+          <div class="player-stats"><span id="hud-level">Lv.1</span> · 💰 <span id="hud-coins">100</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="menu-anchor">
+        <button class="menu-button" id="menu-btn">☰</button>
+        <div class="menu-panel" id="menu-panel">
+          <button id="menu-home">首頁</button>
+          <button id="menu-fullscreen">全螢幕</button>
+          <button id="menu-logout">登出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-pill" id="action-pill"></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="control-button up" data-key="up">▲</button>
+      <button class="control-button left" data-key="left">◀</button>
+      <button class="control-button right" data-key="right">▶</button>
+      <button class="control-button down" data-key="down">▼</button>
+    </div>
+    <div class="right-buttons">
+      <button class="control-button action" data-key="action">A</button>
+    </div>
+  </div>
+
+  <div class="scene-fade" id="scene-fade"></div>
+
+  <script type="module">
+    import { primeAuth, watchUser, signOutGoogle } from "./js/firebase-core.js";
+    import {
+      registerServiceWorker, getSceneState, saveSceneState, transitionTo, showToast,
+      updateHud, setupMenu, createControlState, bindControls, setActionHint
+    } from "./js/app-shell.js";
+    import { ensureSharedTextures, createTopdownWorld } from "./js/pixel-art.js";
+
+    registerServiceWorker();
+    await primeAuth();
+
+    let userProfile = null;
+    let userReady = false;
+    watchUser(async (user, profile) => {
+      userReady = true;
+      if (!user) {
+        showToast("請先登入", "warn", 1200);
+        setTimeout(() => transitionTo("./index.html"), 500);
+        return;
+      }
+      userProfile = profile;
+      updateHud(profile, "大廳原野");
+    });
+
+    setupMenu({
+      onHome: () => transitionTo("./index.html"),
+      onLogout: async () => { await signOutGoogle(); transitionTo("./index.html"); },
+      homeLabel: "首頁"
+    });
+
+    const controlState = bindControls(createControlState());
+
+    class LobbyScene extends Phaser.Scene {
+      constructor() {
+        super("LobbyScene");
+        this.lastAction = false;
+        this.nearestAction = null;
+      }
+
+      create() {
+        ensureSharedTextures(this);
+        const worldWidth = 2600;
+        const worldHeight = 1800;
+        createTopdownWorld(this, worldWidth, worldHeight);
+
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.setBackgroundColor("#8fd6ff");
+        this.cameras.main.roundPixels = true;
+
+        // water pond
+        this.add.tileSprite(1850, 420, 540, 340, "water-tile").setAlpha(0.95);
+        this.add.ellipse(1850, 420, 580, 380, 0x7bc7ff, 0.24);
+
+        // paths
+        const pathG = this.add.graphics();
+        pathG.fillStyle(0xdcc59c, 1);
+        pathG.fillRoundedRect(140, 920, 1800, 140, 40);
+        pathG.fillRoundedRect(1250, 380, 150, 680, 32);
+        pathG.fillRoundedRect(1250, 380, 980, 130, 32);
+        pathG.fillRoundedRect(2200, 510, 120, 500, 32);
+
+        // vegetation
+        this.obstacles = this.physics.add.staticGroup();
+        const nature = [
+          [220, 240, "tree"], [340, 220, "tree"], [560, 260, "tree"], [770, 240, "tree"],
+          [1380, 1280, "tree"], [1560, 1320, "tree"], [1760, 1340, "tree"], [1940, 1360, "tree"],
+          [320, 1440, "tree"], [520, 1520, "tree"], [720, 1460, "tree"], [2080, 1180, "rock"],
+          [2300, 1180, "tree"], [2160, 1450, "tree"], [2360, 320, "tree"], [2160, 260, "tree"],
+          [1640, 240, "rock"], [1550, 250, "tree"], [2020, 250, "tree"]
+        ];
+        nature.forEach(([x, y, key]) => {
+          this.add.image(x, y, key).setDepth(y);
+          const body = this.physics.add.staticImage(x, y + (key === "tree" ? 18 : 0), "rock").setVisible(false);
+          body.body.setSize(key === "tree" ? 44 : 28, key === "tree" ? 20 : 16);
+          body.refreshBody();
+          this.obstacles.add(body);
+        });
+
+        for (let i = 0; i < 20; i += 1) {
+          const flower = this.add.image(
+            Phaser.Math.Between(120, worldWidth - 120),
+            Phaser.Math.Between(120, worldHeight - 120),
+            "flower"
+          );
+          flower.setDepth(flower.y);
+          flower.setScale(Phaser.Math.FloatBetween(0.8, 1.15));
+        }
+
+        // tower
+        this.add.text(2190, 708, "七上之塔", { fontFamily: "Noto Sans TC", fontSize: "26px", color: "#2149a5", fontStyle: "900" }).setDepth(1000);
+        this.add.image(2230, 820, "portal").setScale(1.35).setDepth(820);
+        this.add.rectangle(2230, 866, 150, 28, 0x314d86, 0.16).setDepth(800);
+
+        this.towerZone = this.add.zone(2230, 834, 180, 160);
+        this.physics.world.enable(this.towerZone);
+        this.towerZone.body.setAllowGravity(false);
+        this.towerZone.body.moves = false;
+
+        const startPos = getSceneState("lobby", { x: 430, y: 950 });
+        this.player = this.physics.add.sprite(startPos.x, startPos.y, "hero-top-idle");
+        this.player.setCollideWorldBounds(true);
+        this.player.setSize(16, 14);
+        this.player.setOffset(4, 14);
+        this.player.body.setMaxVelocity(230, 230);
+
+        this.physics.add.collider(this.player, this.obstacles);
+        this.physics.add.overlap(this.player, this.towerZone, () => {
+          this.nearestAction = {
+            label: "A 進入 七上之塔",
+            run: () => {
+              saveSceneState("lobby", { x: this.player.x, y: this.player.y });
+              transitionTo("./tower-seven-up.html");
+            }
+          };
+        });
+
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        const zoom = Math.min(window.innerWidth / 520, window.innerHeight / 320);
+        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.45, 2.5));
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys("W,A,S,D,E");
+        this.time.addEvent({
+          delay: 1200,
+          loop: true,
+          callback: () => saveSceneState("lobby", { x: this.player.x, y: this.player.y })
+        });
+
+        const clouds = this.add.group();
+        for (let i = 0; i < 10; i += 1) {
+          const cloud = this.add.ellipse(Phaser.Math.Between(0, worldWidth), Phaser.Math.Between(80, 400), 140, 54, 0xffffff, 0.7);
+          cloud.setScrollFactor(0.35, 0.35);
+          clouds.add(cloud);
+          this.tweens.add({
+            targets: cloud,
+            x: cloud.x + Phaser.Math.Between(120, 260),
+            duration: Phaser.Math.Between(9000, 14000),
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          });
+        }
+
+        this.events.on("shutdown", () => saveSceneState("lobby", { x: this.player.x, y: this.player.y }));
+      }
+
+      update() {
+        if (!userReady) return;
+        this.nearestAction = null;
+        const speed = 176;
+        const left = this.cursors.left.isDown || this.keys.A.isDown || controlState.left;
+        const right = this.cursors.right.isDown || this.keys.D.isDown || controlState.right;
+        const up = this.cursors.up.isDown || this.keys.W.isDown || controlState.up;
+        const down = this.cursors.down.isDown || this.keys.S.isDown || controlState.down;
+
+        this.player.body.setVelocity(0);
+
+        if (left) this.player.body.setVelocityX(-speed);
+        else if (right) this.player.body.setVelocityX(speed);
+
+        if (up) this.player.body.setVelocityY(-speed);
+        else if (down) this.player.body.setVelocityY(speed);
+
+        if (this.player.body.velocity.length() > 0) {
+          this.player.body.velocity.normalize().scale(speed);
+          this.player.setTexture(Math.floor(this.time.now / 160) % 2 === 0 ? "hero-top-idle" : "hero-top-step");
+        } else {
+          this.player.setTexture("hero-top-idle");
+        }
+
+        this.player.setFlipX(left);
+
+        // action after overlaps are processed
+        this.physics.world.overlap(this.player, this.towerZone);
+        if (this.nearestAction) setActionHint(this.nearestAction.label);
+        else setActionHint("");
+
+        const actionPressed = controlState.action || this.keys.E.isDown || Phaser.Input.Keyboard.JustDown(this.cursors.space) || Phaser.Input.Keyboard.JustDown(this.cursors.shift);
+        if (this.nearestAction && actionPressed && !this.lastAction) {
+          this.nearestAction.run();
+        }
+        this.lastAction = actionPressed;
+      }
+    }
+
+    const game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: "game-root",
+      backgroundColor: "#8fd6ff",
+      pixelArt: true,
+      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      physics: { default: "arcade", arcade: { gravity: { y: 0 }, debug: false } },
+      scene: [LobbyScene]
+    });
+
+    window.addEventListener("resize", () => {
+      game.scale.resize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

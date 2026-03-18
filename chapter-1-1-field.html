@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#83da6a" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>Math RPG｜1-1 原野</title>
+  <link rel="stylesheet" href="./styles/game-ui.css" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body class="scene-page">
+  <div id="game-root"></div>
+
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-chip">
+        <div class="scene-tag" id="hud-scene">1-1 原野</div>
+      </div>
+      <div class="hud-chip">
+        <div class="player-meta">
+          <div class="player-name" id="hud-name">勇者</div>
+          <div class="player-stats"><span id="hud-level">Lv.1</span> · 💰 <span id="hud-coins">100</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="menu-anchor">
+        <button class="menu-button" id="menu-btn">☰</button>
+        <div class="menu-panel" id="menu-panel">
+          <button id="menu-home">回七上之塔</button>
+          <button id="menu-fullscreen">全螢幕</button>
+          <button id="menu-logout">登出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-pill" id="action-pill"></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="control-button up" data-key="up">▲</button>
+      <button class="control-button left" data-key="left">◀</button>
+      <button class="control-button right" data-key="right">▶</button>
+      <button class="control-button down" data-key="down">▼</button>
+    </div>
+    <div class="right-buttons">
+      <button class="control-button action" data-key="action">A</button>
+    </div>
+  </div>
+
+  <div class="scene-fade" id="scene-fade"></div>
+
+  <script type="module">
+    import { primeAuth, watchUser, signOutGoogle } from "./js/firebase-core.js";
+    import {
+      registerServiceWorker, getSceneState, saveSceneState, setBattleEntry, consumeBattleResult,
+      transitionTo, showToast, updateHud, setupMenu, createControlState, bindControls, setActionHint
+    } from "./js/app-shell.js";
+    import { ensureSharedTextures, createTopdownWorld } from "./js/pixel-art.js";
+
+    registerServiceWorker();
+    await primeAuth();
+
+    let userReady = false;
+    watchUser((user, profile) => {
+      userReady = true;
+      if (!user) {
+        showToast("請先登入", "warn", 1200);
+        setTimeout(() => transitionTo("./index.html"), 500);
+        return;
+      }
+      updateHud(profile, "1-1 原野");
+    });
+
+    setupMenu({
+      onHome: () => transitionTo("./tower-seven-up.html"),
+      onLogout: async () => { await signOutGoogle(); transitionTo("./index.html"); },
+      homeLabel: "回七上之塔"
+    });
+
+    const battleResult = consumeBattleResult();
+    if (battleResult && battleResult.scene === "chapter-1-1-field") {
+      showToast(`勝利 +${battleResult.coins || 10} 金幣`, "success", 2200);
+    }
+
+    const controlState = bindControls(createControlState());
+
+    class ChapterFieldScene extends Phaser.Scene {
+      constructor() {
+        super("ChapterFieldScene");
+        this.lastAction = false;
+        this.portalAction = null;
+        this.battleLock = false;
+      }
+
+      create() {
+        ensureSharedTextures(this);
+        const worldWidth = 2600;
+        const worldHeight = 1800;
+        createTopdownWorld(this, worldWidth, worldHeight);
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.setBackgroundColor("#8fd6ff");
+        this.cameras.main.roundPixels = true;
+
+        // terrain features
+        this.add.tileSprite(860, 1380, 560, 320, "water-tile").setAlpha(0.95);
+        this.add.ellipse(860, 1380, 620, 360, 0x7bc7ff, 0.22);
+
+        const path = this.add.graphics();
+        path.fillStyle(0xe0c79d, 1);
+        path.fillRoundedRect(180, 970, 2160, 136, 36);
+        path.fillRoundedRect(440, 740, 130, 530, 30);
+        path.fillRoundedRect(430, 730, 340, 116, 24);
+        path.fillRoundedRect(1680, 780, 130, 500, 30);
+        path.fillRoundedRect(1680, 768, 580, 120, 28);
+
+        // scenery
+        this.obstacles = this.physics.add.staticGroup();
+        const obstacleData = [
+          [140, 260, "tree"], [340, 260, "tree"], [520, 240, "tree"], [740, 260, "tree"],
+          [2040, 280, "tree"], [2240, 280, "tree"], [2440, 260, "tree"],
+          [2380, 1380, "tree"], [2200, 1470, "tree"], [2000, 1560, "tree"],
+          [340, 1520, "tree"], [520, 1600, "tree"], [660, 1490, "rock"], [1400, 1440, "tree"],
+          [1560, 1490, "rock"], [1760, 1520, "tree"], [1960, 1120, "rock"], [2090, 1090, "tree"],
+          [1700, 300, "rock"], [1040, 320, "tree"], [1220, 340, "tree"]
+        ];
+        obstacleData.forEach(([x, y, key]) => {
+          this.add.image(x, y, key).setDepth(y);
+          const body = this.physics.add.staticImage(x, y + (key === "tree" ? 18 : 0), "rock").setVisible(false);
+          body.body.setSize(key === "tree" ? 44 : 28, key === "tree" ? 20 : 16);
+          body.refreshBody();
+          this.obstacles.add(body);
+        });
+        for (let i = 0; i < 28; i += 1) {
+          const flower = this.add.image(
+            Phaser.Math.Between(100, worldWidth - 100),
+            Phaser.Math.Between(100, worldHeight - 100),
+            "flower"
+          ).setScale(Phaser.Math.FloatBetween(0.8, 1.15));
+          flower.setDepth(flower.y);
+        }
+
+        // return portal
+        this.add.text(460, 650, "返回七上之塔", { fontFamily: "Noto Sans TC", fontSize: "24px", color: "#2149a5", fontStyle: "900" });
+        this.add.image(470, 820, "portal").setScale(1.28).setDepth(840);
+        this.portalZone = this.add.zone(470, 820, 180, 160);
+        this.physics.world.enable(this.portalZone);
+        this.portalZone.body.setAllowGravity(false);
+        this.portalZone.body.moves = false;
+
+        const start = getSceneState("chapter-1-1-field", { x: 280, y: 960 });
+        this.player = this.physics.add.sprite(start.x, start.y, "hero-top-idle");
+        this.player.setCollideWorldBounds(true);
+        this.player.setSize(16, 14);
+        this.player.setOffset(4, 14);
+        this.physics.add.collider(this.player, this.obstacles);
+
+        this.slimeDefinitions = [
+          { key: "green", label: "題型一 · 標準題", qType: 1, mode: "standard" },
+          { key: "blue", label: "題型一 · 素養題", qType: 1, mode: "app" },
+          { key: "pink", label: "題型二 · 標準題", qType: 2, mode: "standard" },
+          { key: "gold", label: "題型二 · 素養題", qType: 2, mode: "app" },
+          { key: "purple", label: "隨機挑戰", qType: Phaser.Math.Between(1, 2), mode: Phaser.Math.Between(0, 1) ? "app" : "standard" }
+        ];
+
+        this.slimes = [];
+        const spawnPoints = [
+          [1040, 900], [1180, 760], [1300, 1020], [1470, 890],
+          [1650, 620], [1860, 980], [2100, 760], [2210, 920], [1970, 1240], [1410, 560]
+        ];
+        spawnPoints.forEach((point, index) => {
+          const base = this.slimeDefinitions[index % this.slimeDefinitions.length];
+          const slime = this.physics.add.sprite(point[0], point[1], `slime-${base.key}`);
+          slime.setCircle(10, 4, 8);
+          slime.setBounce(1, 1);
+          slime.setCollideWorldBounds(true);
+          slime.body.setVelocity(Phaser.Math.Between(-60, 60), Phaser.Math.Between(-60, 60));
+          slime.setData("battle", { ...base });
+          slime.setDepth(slime.y + 4);
+          this.tweens.add({
+            targets: slime,
+            scaleY: 0.92,
+            scaleX: 1.06,
+            duration: Phaser.Math.Between(520, 820),
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          });
+          this.slimes.push(slime);
+        });
+
+        this.physics.add.collider(this.player, this.obstacles);
+        this.physics.add.overlap(this.player, this.portalZone, () => {
+          this.portalAction = () => {
+            saveSceneState("chapter-1-1-field", { x: this.player.x, y: this.player.y });
+            transitionTo("./tower-seven-up.html");
+          };
+        });
+        this.slimes.forEach((slime) => this.physics.add.overlap(this.player, slime, () => this.startBattle(slime)));
+
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        const zoom = Math.min(window.innerWidth / 520, window.innerHeight / 320);
+        this.cameras.main.setZoom(Phaser.Math.Clamp(zoom, 1.35, 2.3));
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys("W,A,S,D,E");
+        this.time.addEvent({
+          delay: 1300,
+          loop: true,
+          callback: () => {
+            saveSceneState("chapter-1-1-field", { x: this.player.x, y: this.player.y });
+            this.slimes.forEach((slime) => {
+              if (!slime.active) return;
+              slime.body.setVelocity(
+                Phaser.Math.Between(-80, 80),
+                Phaser.Math.Between(-80, 80)
+              );
+            });
+          }
+        });
+      }
+
+      startBattle(slime) {
+        if (this.battleLock) return;
+        this.battleLock = true;
+        const battle = slime.getData("battle");
+        const entry = {
+          scene: "chapter-1-1-field",
+          qType: battle.qType,
+          mode: battle.mode,
+          slime: battle.key,
+          label: battle.label,
+          returnTo: "./chapter-1-1-field.html"
+        };
+        setBattleEntry(entry);
+        saveSceneState("chapter-1-1-field", { x: this.player.x, y: this.player.y });
+        this.cameras.main.flash(220, 255, 255, 255);
+        showToast(`遭遇 ${battle.label}`, "warn", 900);
+        setTimeout(() => {
+          transitionTo(`./1-1.html?battle=1&qType=${battle.qType}&mode=${battle.mode}&returnTo=chapter-1-1-field.html&label=${encodeURIComponent(battle.label)}`);
+        }, 260);
+      }
+
+      update() {
+        if (!userReady) return;
+        this.portalAction = null;
+        this.physics.world.overlap(this.player, this.portalZone);
+        if (this.portalAction) setActionHint("A 回七上之塔");
+        else setActionHint("");
+
+        const speed = 176;
+        const left = this.cursors.left.isDown || this.keys.A.isDown || controlState.left;
+        const right = this.cursors.right.isDown || this.keys.D.isDown || controlState.right;
+        const up = this.cursors.up.isDown || this.keys.W.isDown || controlState.up;
+        const down = this.cursors.down.isDown || this.keys.S.isDown || controlState.down;
+
+        this.player.body.setVelocity(0);
+        if (left) this.player.body.setVelocityX(-speed);
+        else if (right) this.player.body.setVelocityX(speed);
+        if (up) this.player.body.setVelocityY(-speed);
+        else if (down) this.player.body.setVelocityY(speed);
+
+        if (this.player.body.velocity.length() > 0) {
+          this.player.body.velocity.normalize().scale(speed);
+          this.player.setTexture(Math.floor(this.time.now / 160) % 2 === 0 ? "hero-top-idle" : "hero-top-step");
+        } else {
+          this.player.setTexture("hero-top-idle");
+        }
+        this.player.setFlipX(left);
+
+        const actionPressed = controlState.action || this.keys.E.isDown;
+        if (this.portalAction && actionPressed && !this.lastAction) {
+          this.portalAction();
+        }
+        this.lastAction = actionPressed;
+
+        this.slimes.forEach((slime) => slime.setDepth(slime.y + 4));
+        this.player.setDepth(this.player.y + 10);
+      }
+    }
+
+    const game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: "game-root",
+      backgroundColor: "#8fd6ff",
+      pixelArt: true,
+      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      physics: { default: "arcade", arcade: { gravity: { y: 0 }, debug: false } },
+      scene: [ChapterFieldScene]
+    });
+
+    window.addEventListener("resize", () => game.scale.resize(window.innerWidth, window.innerHeight));
+  </script>
+</body>
+</html>

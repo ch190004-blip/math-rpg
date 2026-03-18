@@ -2,18 +2,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700;900&display=swap');
 
 :root {
-  --hud-bg: rgba(255,255,255,0.78);
-  --hud-border: rgba(83,113,173,0.2);
-  --hud-text: #223357;
-  --hud-accent: #ffca3a;
+  --hud-bg: rgba(255,255,255,0.8);
+  --hud-border: rgba(61,97,165,0.18);
+  --hud-text: #21406b;
   --hud-shadow: rgba(14, 41, 88, 0.16);
-  --panel-bg: rgba(255,255,255,0.92);
+  --panel-bg: rgba(255,255,255,0.94);
   --panel-text: #244370;
-  --action-bg: rgba(46,91,214,0.92);
+  --action-bg: rgba(33, 64, 107, 0.92);
   --action-text: #ffffff;
-  --toast-success: rgba(70, 173, 85, 0.96);
-  --toast-normal: rgba(35, 58, 108, 0.92);
-  --toast-warn: rgba(198, 106, 54, 0.94);
+  --toast-success: rgba(54, 171, 88, 0.96);
+  --toast-normal: rgba(35, 58, 108, 0.94);
+  --toast-warn: rgba(198, 106, 54, 0.95);
 }
 
 * { box-sizing: border-box; }
@@ -35,6 +34,7 @@ body.scene-page {
   position: absolute;
   inset: 0;
 }
+
 .hud {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 14px);
@@ -47,9 +47,9 @@ body.scene-page {
   gap: 12px;
   pointer-events: none;
 }
-.hud-chip, .menu-button, .menu-panel, .action-pill, .toast, .control-button, .status-badge {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+.hud-chip, .menu-button, .menu-panel, .action-pill, .toast, .control-button, .keyboard-guide {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .hud-left, .hud-right {
   display: flex;
@@ -85,7 +85,7 @@ body.scene-page {
 }
 .player-stats {
   font-size: 12px;
-  opacity: 0.78;
+  opacity: 0.82;
 }
 .menu-anchor {
   pointer-events: auto;
@@ -96,7 +96,7 @@ body.scene-page {
   height: 48px;
   border: none;
   border-radius: 14px;
-  background: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.9);
   color: #294671;
   font-size: 24px;
   cursor: pointer;
@@ -109,7 +109,7 @@ body.scene-page {
   display: none;
   flex-direction: column;
   gap: 8px;
-  min-width: 160px;
+  min-width: 168px;
   padding: 10px;
   border-radius: 16px;
   background: var(--panel-bg);
@@ -128,6 +128,21 @@ body.scene-page {
   background: rgba(116, 170, 255, 0.12);
   cursor: pointer;
 }
+.keyboard-guide {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 16;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.76);
+  border: 1px solid rgba(61,97,165,0.16);
+  color: #244370;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(14, 41, 88, 0.14);
+  pointer-events: none;
+}
 .action-pill {
   position: absolute;
   z-index: 16;
@@ -136,9 +151,9 @@ body.scene-page {
   transform: translateX(-50%) translateY(-10px);
   padding: 10px 16px;
   border-radius: 999px;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--action-text);
-  background: rgba(41, 70, 113, 0.88);
+  background: var(--action-bg);
   box-shadow: 0 8px 20px rgba(14, 41, 88, 0.15);
   opacity: 0;
   transition: 0.2s ease;
@@ -161,7 +176,7 @@ body.scene-page {
   opacity: 0;
   transition: 0.24s ease;
   pointer-events: none;
-  font-weight: 800;
+  font-weight: 900;
   box-shadow: 0 10px 26px rgba(14, 41, 88, 0.22);
 }
 .toast[data-type="success"] { background: var(--toast-success); }
@@ -193,15 +208,18 @@ body.scene-page {
   border-radius: 22px;
   width: 56px;
   height: 56px;
-  background: rgba(255,255,255,0.78);
+  background: rgba(255,255,255,0.8);
   color: #28406a;
   box-shadow: 0 10px 24px rgba(14, 41, 88, 0.2);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .control-button.pressed {
   transform: translateY(2px) scale(0.97);
-  background: rgba(255,235,164,0.95);
+  background: rgba(255,235,164,0.96);
 }
 .control-button.up { left: 47px; top: 0; }
 .control-button.down { left: 47px; bottom: 0; }
@@ -214,15 +232,18 @@ body.scene-page {
 }
 .right-buttons .control-button {
   position: static;
-  width: 68px;
+  width: auto;
+  min-width: 84px;
   height: 68px;
+  padding: 0 18px;
   border-radius: 999px;
+  font-size: 18px;
 }
 .control-button.action {
-  background: rgba(255, 214, 92, 0.9);
+  background: rgba(255, 214, 92, 0.92);
 }
 .control-button.jump {
-  background: rgba(130, 179, 255, 0.92);
+  background: rgba(130, 179, 255, 0.94);
 }
 .scene-fade {
   position: absolute;
@@ -235,8 +256,12 @@ body.scene-page {
 }
 .scene-fade.active { opacity: 1; }
 
-@media (min-width: 1025px) {
-  .controls { opacity: 0.88; }
+@media (pointer: fine) {
+  .controls { display: none; }
+  .keyboard-guide { display: block; }
+}
+@media (pointer: coarse) {
+  .keyboard-guide { display: none; }
 }
 
 @media (max-width: 860px) {
@@ -250,6 +275,8 @@ body.scene-page {
   .action-pill {
     top: calc(env(safe-area-inset-top, 0px) + 70px);
     font-size: 13px;
+    max-width: calc(100vw - 36px);
+    text-align: center;
   }
   .dpad {
     width: 138px;
@@ -264,7 +291,8 @@ body.scene-page {
   .control-button.up, .control-button.down { left: 44px; }
   .control-button.left, .control-button.right { top: 44px; }
   .right-buttons .control-button {
-    width: 62px;
+    min-width: 74px;
     height: 62px;
+    font-size: 16px;
   }
 }

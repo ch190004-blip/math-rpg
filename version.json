@@ -1,0 +1,10 @@
+{
+  "app": "Math RPG",
+  "build": "v10.0.0-beta.0",
+  "updatedAt": "2026-03-19T00:00:00+08:00",
+  "cachePolicy": {
+    "navigations": "network-first",
+    "assets": "network-first-with-runtime-cache",
+    "serviceWorker": "immediate-claim"
+  }
+}

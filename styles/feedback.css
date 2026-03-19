@@ -1,13 +1,4 @@
-#modal-root{
-  position:absolute;inset:0;z-index:50;pointer-events:none;
-}
-.feedback-fab{
-  position:absolute;left:1rem;bottom:1rem;z-index:55;
-  pointer-events:auto;
-  border:none;border-radius:999px;padding:.8rem 1rem;
-  background:linear-gradient(180deg,#fff2b6,#ffd55d);color:#5e3c00;font-weight:900;
-  box-shadow:0 12px 28px rgba(0,0,0,.25);
-}
+
 .feedback-layer{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   padding:1rem;background:rgba(4,9,16,.72);backdrop-filter:blur(10px);
@@ -15,7 +6,7 @@
 }
 .feedback-panel{
   width:min(760px,100%);max-height:min(90vh,860px);overflow:auto;
-  padding:1.2rem;border-radius:28px;background:rgba(10,25,18,.94);color:#fff;
+  padding:1.2rem;border-radius:28px;background:rgba(10,25,18,.96);color:#fff;
   border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 44px rgba(0,0,0,.3);
 }
 .feedback-head{
@@ -36,5 +27,4 @@
 .feedback-note{font-size:.86rem;line-height:1.8;color:#cffff0;opacity:.86;margin-top:1rem}
 @media (max-width: 760px){
   .feedback-grid{grid-template-columns:1fr}
-  .feedback-fab{left:.8rem;bottom:calc(.8rem + env(safe-area-inset-bottom))}
 }

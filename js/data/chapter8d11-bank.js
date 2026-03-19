@@ -20,13 +20,16 @@
   };
 
   function makeQuestion(base){
-    return Object.assign({
+    const q = Object.assign({
       rewardCoins: app.config.game.rewardCoins,
       rewardExp: app.config.game.rewardExp,
       placeholder: '請輸入答案',
       inputMode: 'text',
-      modeLabel: base.mode === 'literacy' ? '素養題' : '標準題'
+      modeLabel: base.mode === 'literacy' ? '素養題' : '標準題',
+      hintCost: 5
     }, base);
+    if (!q.hintText) q.hintText = q.feedbackLead || '先整理已知條件與所求。';
+    return q;
   }
 
   function intValidator(answer){

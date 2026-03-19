@@ -6,17 +6,18 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Math RPG｜封測世界版</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg?v=v8.0.0-beta.0" />
-  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png?v=v8.0.0-beta.0" />
-  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=v8.0.0-beta.0" />
-  <link rel="manifest" href="./manifest.webmanifest?v=v8.0.0-beta.0" />
+  <meta name="description" content="Math RPG 數學 RPG 單一入口版，含登入、六塔探索、戰鬥題庫、回饋與封測更新。" />
+  <title>Math RPG｜封測世界版 v10</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg?v=v10.0.0-beta.0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32.png?v=v10.0.0-beta.0" />
+  <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=v10.0.0-beta.0" />
+  <link rel="manifest" href="./manifest.webmanifest?v=v10.0.0-beta.0" />
   <meta name="theme-color" content="#9ae6b4" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Math RPG" />
   <script>
-    window.__MATH_RPG_BUILD__ = "v8.0.0-beta.0";
+    window.__MATH_RPG_BUILD__ = "v10.0.0-beta.0";
     try {
       document.documentElement.setAttribute('data-build', window.__MATH_RPG_BUILD__);
       const prev = localStorage.getItem('mathRpgBuild');
@@ -28,12 +29,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles/reset.css?v=v8.0.0-beta.0" />
-  <link rel="stylesheet" href="./styles/theme.css?v=v8.0.0-beta.0" />
-  <link rel="stylesheet" href="./styles/layout.css?v=v8.0.0-beta.0" />
-  <link rel="stylesheet" href="./styles/overlays.css?v=v8.0.0-beta.0" />
-  <link rel="stylesheet" href="./styles/battle.css?v=v8.0.0-beta.0" />
-  <link rel="stylesheet" href="./styles/feedback.css?v=v8.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/reset.css?v=v10.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/theme.css?v=v10.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/layout.css?v=v10.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/overlays.css?v=v10.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/battle.css?v=v10.0.0-beta.0" />
+  <link rel="stylesheet" href="./styles/feedback.css?v=v10.0.0-beta.0" />
 </head>
 <body>
   <div id="app-shell">
@@ -50,28 +51,28 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
-  <script src="./js/core/namespace.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/core/state.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/core/utils.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/core/namespace.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/core/state.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/core/utils.js?v=v10.0.0-beta.0"></script>
 
-  <script src="./js/services/firebase-service.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/services/firebase-service.js?v=v10.0.0-beta.0"></script>
 
-  <script src="./js/data/chapter11-bank.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/data/chapter7d11-bank.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/data/chapter8d11-bank.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/data/world-data.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/data/chapter11-bank.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/data/chapter7d11-bank.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/data/chapter8d11-bank.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/data/world-data.js?v=v10.0.0-beta.0"></script>
 
-  <script src="./js/ui/hud.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/ui/overlays.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/ui/feedback.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/ui/touch-controls.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/ui/hud.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/ui/overlays.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/ui/feedback.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/ui/touch-controls.js?v=v10.0.0-beta.0"></script>
 
-  <script src="./js/game/avatar-builder.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/game/scenes/boot.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/game/scenes/lobby.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/game/scenes/tower.js?v=v8.0.0-beta.0"></script>
-  <script src="./js/game/scenes/field.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/game/avatar-builder.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/game/scenes/boot.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/game/scenes/lobby.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/game/scenes/tower.js?v=v10.0.0-beta.0"></script>
+  <script src="./js/game/scenes/field.js?v=v10.0.0-beta.0"></script>
 
-  <script src="./js/app.js?v=v8.0.0-beta.0"></script>
+  <script src="./js/app.js?v=v10.0.0-beta.0"></script>
 </body>
 </html>

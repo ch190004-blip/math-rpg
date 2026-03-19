@@ -227,6 +227,44 @@
     return '';
   }
 
+
+  function richText(html){
+    return String(html || '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<b>(.*?)<\/b>/g, '<span class="math-chip">$1</span>')
+      .replace(/\n+/g, '<br>');
+  }
+
+  function renderPrompt(prompt){
+    return `<div class="prompt-body">${richText(prompt)}</div>`;
+  }
+
+  async function revealHint(){
+    const q = state.battle.currentQuestion;
+    const hintBox = document.getElementById('battle-hint-box');
+    if (!q || !hintBox || state.battle.inputLocked) return;
+
+    if (state.battle.hintUsed) {
+      hintBox.innerHTML = `<span class="hint-ok">已使用提示：</span> ${richText(q.hintText || q.feedbackLead || '先找出關鍵條件。')}`;
+      return;
+    }
+
+    const cost = Number(q.hintCost || state.battle.hintCost || 5);
+    const ok = await app.services.firebase.spendCoins(cost);
+    if (!ok) {
+      app.ui.toast(`提示需要 ${cost} 金幣，目前金幣不足。`, 'bad');
+      return;
+    }
+    state.battle.hintUsed = true;
+    hintBox.innerHTML = `<span class="hint-ok">已扣 ${cost} 金幣：</span> ${richText(q.hintText || q.feedbackLead || '先找出關鍵條件。')}`;
+    const btn = document.getElementById('battle-hint-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '提示已使用';
+    }
+    app.ui.renderHUD();
+  }
+
   async function checkAnswer(){
     if (state.battle.inputLocked) return;
     const q = state.battle.currentQuestion;
@@ -242,12 +280,12 @@
 
     if (q.validate(raw)) {
       state.battle.inputLocked = true;
-      if (feedback) feedback.innerHTML = `<span class="ok">答對了！</span> ${q.successText}`;
+      if (feedback) feedback.innerHTML = `<span class="ok">答對了！</span> ${richText(q.successText)}`;
       await app.services.firebase.addReward(q.rewardCoins, q.rewardExp);
       app.ui.toast(`獲得 ${q.rewardCoins} 金幣、${q.rewardExp} EXP`, 'good');
       setTimeout(() => app.runtime.closeBattle(true), 880);
     } else {
-      if (feedback) feedback.innerHTML = `<span class="bad">再試一次。</span> ${q.feedbackLead}`;
+      if (feedback) feedback.innerHTML = `<span class="bad">再試一次。</span> ${richText(q.feedbackLead)}`;
       if (input) input.select();
     }
   }
@@ -447,11 +485,17 @@
             </div>
 
             <div class="question-card">
-              <div class="prompt-body">${q.prompt}</div>
+              ${renderPrompt(q.prompt)}
               ${q.visual ? renderVisual(q) : ''}
             </div>
 
-            <div class="feedback" id="battle-feedback">${q.feedbackLead}</div>
+            <div class="hint-row">
+              <button class="secondary-btn hint-btn" id="battle-hint-btn" ${state.battle.hintUsed ? 'disabled' : ''}>${state.battle.hintUsed ? '提示已使用' : `提示 - ${q.hintCost || state.battle.hintCost || 5} G`}</button>
+              <div class="hint-note">提示要花金幣，買過後本題只顯示一次。</div>
+            </div>
+            <div class="feedback hint-panel" id="battle-hint-box">${state.battle.hintUsed ? richText(q.hintText || q.feedbackLead || '先找出關鍵條件。') : '還沒使用提示。'}</div>
+
+            <div class="feedback" id="battle-feedback">${richText(q.feedbackLead)}</div>
 
             <div class="answer-row">
               <div>
@@ -473,8 +517,10 @@
     `;
 
     const answerInput = document.getElementById('battle-answer');
+    const hintBtn = document.getElementById('battle-hint-btn');
     document.getElementById('submit-answer-btn').onclick = checkAnswer;
     document.getElementById('retreat-battle-btn').onclick = () => app.runtime.closeBattle(false);
+    if (hintBtn) hintBtn.onclick = () => revealHint();
 
     if (answerInput) {
       answerInput.focus();
@@ -523,6 +569,7 @@
     state.battle.rewarded = false;
     state.battle.seconds = 0;
     state.battle.inputLocked = false;
+    state.battle.hintUsed = false;
     if (!state.battle.currentQuestion) {
       const bank = world().getBank(context.chapterId);
       state.battle.currentQuestion = bank.generateQuestion(context.typeId, context.mode, context.slime);
@@ -535,6 +582,7 @@
     state.currentBattle = null;
     state.battle.currentQuestion = null;
     state.battle.inputLocked = false;
+    state.battle.hintUsed = false;
     state.overlay = 'none';
     app.ui.renderAll();
   };

@@ -116,6 +116,7 @@
     state.currentBattle = context;
     state.battle.rewarded = false;
     state.battle.inputLocked = false;
+    state.battle.hintUsed = false;
     state.battle.seconds = 0;
     const bank = world().getBank(context.chapterId);
     state.battle.currentQuestion = bank.generateQuestion(context.typeId, context.mode, context.slime);
@@ -155,6 +156,90 @@
     app.ui.openFeedback();
   };
 
+
+  async function purgeRuntimeCaches(){
+    if (!('caches' in window)) return;
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter((key) => /math-rpg-|math|rpg|phaser/i.test(key))
+      .map((key) => caches.delete(key))
+    );
+  }
+
+  async function unregisterLegacyServiceWorkers(){
+    if (!('serviceWorker' in navigator)) return;
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((reg) => reg.unregister()));
+  }
+
+  async function ensureFreshBuild(){
+    const currentBuild = window.__MATH_RPG_BUILD__ || 'beta';
+    document.title = `Math RPG｜${currentBuild}`;
+
+    try{
+      const response = await fetch(`./version.json?ts=${Date.now()}`, { cache: 'no-store' });
+      const version = await response.json();
+      const remoteBuild = version && version.build ? version.build : currentBuild;
+      const redirectGuard = sessionStorage.getItem('mathRpgBuildRedirect');
+
+      if (remoteBuild !== currentBuild && redirectGuard !== remoteBuild) {
+        sessionStorage.setItem('mathRpgBuildRedirect', remoteBuild);
+        await unregisterLegacyServiceWorkers();
+        await purgeRuntimeCaches();
+        sessionStorage.removeItem('mathRpgLastRoute');
+        localStorage.setItem('mathRpgExpectedBuild', remoteBuild);
+        location.replace(`./index.html?build=${encodeURIComponent(remoteBuild)}&ts=${Date.now()}`);
+        return false;
+      }
+
+      sessionStorage.removeItem('mathRpgBuildRedirect');
+      localStorage.setItem('mathRpgBuild', currentBuild);
+      localStorage.setItem('mathRpgExpectedBuild', remoteBuild);
+      if (remoteBuild === currentBuild) {
+        document.documentElement.setAttribute('data-build-ok', 'true');
+      }
+    }catch(error){
+      console.warn('Unable to verify remote build, continue with current build.', error);
+      localStorage.setItem('mathRpgBuild', currentBuild);
+    }
+    return true;
+  }
+
+  async function registerRuntimeServiceWorker(){
+    if (!('serviceWorker' in navigator)) return;
+    const isSecureContextLike = location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (!isSecureContextLike) return;
+
+    try{
+      const reg = await navigator.serviceWorker.register(`./service-worker.js?v=${window.__MATH_RPG_BUILD__ || 'beta'}`, {
+        updateViaCache: 'none',
+        scope: './'
+      });
+
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+      reg.addEventListener('updatefound', () => {
+        const installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            try { localStorage.setItem('mathRpgPendingReloadBuild', window.__MATH_RPG_BUILD__ || 'beta'); } catch (_e) {}
+            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        location.reload();
+      });
+    }catch(error){
+      console.warn('Service worker registration skipped.', error);
+    }
+  }
+
   window.addEventListener('resize', () => {
     if (app.runtime.game && app.runtime.game.scale) app.runtime.game.scale.resize(window.innerWidth, window.innerHeight);
   });
@@ -167,24 +252,10 @@
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
-    try{
-      const build = window.__MATH_RPG_BUILD__ || 'beta';
-      document.title = `Math RPG｜${build}`;
-      const prevBuild = localStorage.getItem('mathRpgBuild');
-      if (prevBuild !== build) {
-        localStorage.setItem('mathRpgBuild', build);
-        sessionStorage.removeItem('mathRpgLastRoute');
-      }
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
-      }
-      if ('caches' in window) {
-        caches.keys().then((keys) => Promise.all(keys
-          .filter((key) => /math|rpg|phaser/i.test(key))
-          .map((key) => caches.delete(key))
-        )).catch(() => {});
-      }
-    }catch(_){}
+    const canBoot = await ensureFreshBuild();
+    if (!canBoot) return;
+
+    await registerRuntimeServiceWorker();
 
     createGame();
     state.overlay = 'title';

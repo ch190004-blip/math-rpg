@@ -1,7 +1,7 @@
 {
   "name": "Math RPG 數學遊戲化學習平台",
   "short_name": "Math RPG",
-  "start_url": "./index.html?v=v8.0.0-beta.0",
+  "start_url": "./index.html?source=pwa&build=v10.0.0-beta.0",
   "display": "standalone",
   "background_color": "#9ae6b4",
   "theme_color": "#9ae6b4",
@@ -16,5 +16,6 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "scope": "./"
 }

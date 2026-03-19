@@ -1,52 +1,86 @@
-# Math RPG 單一入口 v6 Beta
+# Math RPG 單一入口 v10 Beta
 
-這版重點：
+這版是在 v9 的基礎上，把「手機 / 瀏覽器偶爾跳回舊版」的問題正式納入工程層處理。
 
-- 修正有時跳回舊版的問題  
-  - 所有本地 CSS / JS 已加上 build 版本參數
-  - `index.html` 加入 no-cache meta
-  - 啟動時會嘗試解除舊 service worker / 舊 caches
-  - 介面顯示目前 build：`v6.0.0-beta.1`
+## v10 新增重點
+- build 版號升級為 `v10.0.0-beta.0`
+- 新增 `version.json`
+- 新增 `service-worker.js`
+- 啟動時先比對遠端 build
+- 若發現當前頁面不是最新 build：
+  - 自動清掉舊 runtime cache
+  - 自動解除舊 service worker
+  - 強制重新載入最新 `index.html`
+- service worker 改成：
+  - `skipWaiting()`
+  - `clients.claim()`
+  - `index.html / version.json / manifest / service-worker` 走 network-first
+- 新增 `firebase.json`
+- 新增 `firebaserc.sample.json`
+- 新增 `FIREBASE_HOSTING_DEPLOY.md`
 
-- 首頁改成精簡版分頁式入口
-  - 保留左右分區顯示
-  - 加入「這版更新 / 目前上架 / 目前規則」
+## 這版的目標
+不是把遊戲改成離線快取玩具版，而是優先解決：
+1. 玩家重新整理還看到舊版
+2. 手機已安裝主畫面殼卻抓到舊資源
+3. GitHub Pages 覆蓋上傳後殘留舊檔
+4. 封測前需要更可控的部署流程
 
-- 右上角加入主選單
-  - 回首頁
-  - BUG / 回饋
-  - 登出
+## 目前建議部署方式
+### 最推薦
+Firebase Hosting
 
-- 全場景右下角固定保留 BUG / 回饋按鈕
+### 可以暫時用，但不建議當最終封測正式版
+GitHub Pages 直接拖拉覆蓋
 
-## 啟動
-建議用本機伺服器或 HTTPS 靜態主機執行。
+## 你如果還是要繼續用 GitHub Pages
+至少務必做到：
+- 不要只「覆蓋」，要先刪掉舊版根目錄內容再上傳
+- 不要把舊版 zip 與舊版資料夾留在公開根目錄
+- 每次發版都一起更新：
+  - `index.html`
+  - `version.json`
+  - `service-worker.js`
+  - `manifest.webmanifest`
 
-## 若還看到舊版
-1. 改從這個新資料夾重新開啟  
-2. 重新整理一次  
-3. 若你曾建立桌面捷徑或安裝成應用程式，請改用新版入口重新建立捷徑
+## Firebase 仍需要的 Collection
+### `users/{uid}`
+- `name`
+- `email`
+- `level`
+- `exp`
+- `coins`
+- `avatarSkin`
+- `customNameSet`
 
-## 主檔
-- `index.html`
-- `js/ui/hud.js`
-- `js/ui/overlays.js`
-- `styles/layout.css`
-- `styles/overlays.css`
+### `feedback`
+- `uid`
+- `userName`
+- `userEmail`
+- `kind`
+- `bugType`
+- `semesterId`
+- `chapterId`
+- `slimeTypeId`
+- `description`
+- `sceneKey`
+- `currentTowerId`
+- `currentChapterId`
+- `build`
+- `createdAt`
+- `serverTimestamp`
 
+## 啟動方式
+建議：
+- 本機伺服器
+- GitHub Pages
+- Firebase Hosting
 
-## v8 修正
-- 六塔數學中心相對位置重排
-- 七上之塔改為 3 層章節塔：1F(1-1~1-4)、2F(2-1~2-4)、3F(3-1~3-3)
-- 1-1 怪物加入 10 題型高辨識色與三種種族外觀
-- 戰鬥題目版面改善，避免圖文互蓋
-- Firestore level 欄位同步更新
-- 右上選單與右下 BUG/回饋按鈕可點擊
+不要直接雙擊 `index.html`。
 
-
-## v8 調整
-- 修正六塔門口進場判定
-- 右上選單與左下 BUG / 回饋改為可點擊
-- 首次登入可自訂勇者名稱
-- 加入 favicon / manifest / 手機安裝提示
-- Firestore 獎勵同步改為 transaction，level 會和 exp 一起更新
+## 本版新增檔案
+- `version.json`
+- `service-worker.js`
+- `firebase.json`
+- `firebaserc.sample.json`
+- `FIREBASE_HOSTING_DEPLOY.md`

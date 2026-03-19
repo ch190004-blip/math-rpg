@@ -33,7 +33,9 @@
       seconds: 0,
       rewarded: false,
       currentQuestion: null,
-      inputLocked: false
+      inputLocked: false,
+      hintUsed: false,
+      hintCost: 5
     },
     feedback: {
       draft: null,

@@ -3,13 +3,15 @@
   const state = app.state;
   const world = () => app.data.world;
 
-  function polyPoints(radius){
-    const list = [];
-    for (let i = 0; i < 5; i++) {
-      const angle = -Math.PI / 2 + (Math.PI * 2 / 5) * i;
-      list.push(Math.cos(angle) * radius, Math.sin(angle) * radius);
-    }
-    return list;
+  function shadeColor(hex, amt){
+    const n = Number('0x' + hex.replace('#', ''));
+    let r = (n >> 16) + amt;
+    let g = ((n >> 8) & 0xff) + amt;
+    let b = (n & 0xff) + amt;
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return (r << 16) | (g << 8) | b;
   }
 
   app.scenes.LobbyScene = class LobbyScene extends Phaser.Scene{
@@ -47,8 +49,8 @@
 
     drawBackground(W, H){
       this.add.rectangle(W/2, H/2, W, H, 0xbfe8ff).setDepth(-10);
-      this.add.circle(130, 120, 120, 0xffffff, 0.88).setDepth(-9);
-      this.add.circle(W - 160, 160, 128, 0xffffff, 0.36).setDepth(-9);
+      this.add.circle(130, 120, 120, 0xffffff, 0.9).setDepth(-9);
+      this.add.circle(W - 160, 160, 128, 0xffffff, 0.38).setDepth(-9);
       this.add.rectangle(W/2, H - 132, W, 200, 0x8fd36c, 1).setDepth(-8);
       this.add.rectangle(W/2, H - 58, W, 78, 0x97de74, 1).setDepth(-8);
 
@@ -85,34 +87,39 @@
 
     createTowerGate(semester){
       const { lobbyX:x, lobbyY:y } = semester;
-      const colorNum = Number('0x' + semester.color.replace('#',''));
-      const shadow = this.add.ellipse(x, y + 68, 180, 40, 0x000000, 0.14).setDepth(1);
-      const body = this.add.polygon(x, y, polyPoints(70), colorNum, 0.98)
-        .setDepth(2)
-        .setStrokeStyle(6, 0x2b2518, 1);
-      const roof = this.add.polygon(x, y - 8, polyPoints(46), 0xffffff, 0.16).setDepth(3);
-      const door = this.add.rectangle(x, y + 26, 44, 60, 0xffffff, 0.98)
-        .setDepth(4)
-        .setStrokeStyle(4, 0x2b2518);
-      const label = this.add.text(x, y + 12, semester.short, {
-        fontFamily:'Noto Sans TC', fontSize:'24px', fontStyle:'900', color:'#2c2514'
-      }).setOrigin(0.5).setDepth(5);
-      this.add.text(x, y - 86, semester.label, {
+      const bodyTint = shadeColor(semester.color, -12);
+      const roofTint = shadeColor(semester.color, 22);
+      const glowTint = shadeColor(semester.color, 50);
+
+      const shadow = this.add.ellipse(x, y + 88, 150, 34, 0x000000, 0.14).setDepth(1);
+      const leftWing = this.add.rectangle(x - 42, y + 14, 74, 120, 0xe8dcc6, 1).setDepth(2).setStrokeStyle(6, 0x805f39);
+      const rightWing = this.add.rectangle(x + 42, y + 14, 74, 120, 0xe8dcc6, 1).setDepth(2).setStrokeStyle(6, 0x805f39);
+      const central = this.add.rectangle(x, y - 6, 108, 172, 0xf2e7d2, 1).setDepth(3).setStrokeStyle(6, 0x805f39);
+      const roof = this.add.triangle(x, y - 124, 0, 80, 88, 80, 44, 0, roofTint, 1).setDepth(4).setOrigin(0.5);
+      const banner = this.add.rectangle(x, y - 30, 54, 90, bodyTint, 1).setDepth(4.5).setStrokeStyle(4, 0x2b2518);
+      const windowL = this.add.rectangle(x - 26, y - 18, 20, 38, 0x8fd3ff, 1).setDepth(4.6).setStrokeStyle(4, 0xb4854f);
+      const windowR = this.add.rectangle(x + 26, y - 18, 20, 38, 0x8fd3ff, 1).setDepth(4.6).setStrokeStyle(4, 0xb4854f);
+      const doorGlow = this.add.rectangle(x, y + 54, 54, 60, glowTint, 0.18).setDepth(5);
+      const door = this.add.rectangle(x, y + 56, 44, 56, 0x6f4822, 1).setDepth(5).setStrokeStyle(4, 0x3b2411);
+      this.add.text(x, y - 34, semester.short, {
+        fontFamily:'Noto Sans TC', fontSize:'22px', fontStyle:'900', color:'#2c2514'
+      }).setOrigin(0.5).setDepth(5.2);
+      this.add.text(x, y - 168, semester.label, {
         fontFamily:'Noto Sans TC', fontSize:'18px', fontStyle:'900', color:'#204e29', stroke:'#fff', strokeThickness:5
       }).setOrigin(0.5).setDepth(6);
 
       this.tweens.add({
-        targets:[body, roof, door, label],
-        y:'-=4',
-        duration:1750 + Math.round(Math.random() * 250),
+        targets:[leftWing,rightWing,central,roof,banner,windowL,windowR,doorGlow,door],
+        y:'-=3',
+        duration:1750 + Math.round(Math.random() * 300),
         yoyo:true,
         repeat:-1,
         ease:'Sine.easeInOut'
       });
 
-      const zone = this.add.zone(x, y + 26, 88, 96);
+      const zone = this.add.zone(x, y + 58, 64, 74).setDepth(10);
       this.physics.add.existing(zone, true);
-      this.gates.push({ semester, zone, x, y });
+      this.gates.push({ semester, zone, x, y, shadow });
     }
 
     consumeInteract(){
@@ -121,7 +128,7 @@
       const touch = state.input.interact;
       if (touch) state.input.interact = false;
       const fired = kb || touch;
-      if (fired) this.interactCooldownUntil = this.time.now + 250;
+      if (fired) this.interactCooldownUntil = this.time.now + 240;
       return fired;
     }
 

@@ -197,6 +197,51 @@
       return state.profile;
     },
 
+
+    async spendCoins(cost){
+      const spend = Math.max(0, Number(cost || 0));
+      if (!spend) return true;
+
+      if (state.user && state.firebaseReady && this.db && state.user.uid !== 'offline-user') {
+        try{
+          const ref = this.db.collection('users').doc(state.user.uid);
+          const result = await this.db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const current = Object.assign({}, defaultProfile(state.profile?.name || '勇者'), snap.exists ? snap.data() : {});
+            const currentCoins = Number(current.coins || 0);
+            if (currentCoins < spend) return null;
+            const nextProfile = Object.assign({}, current, {
+              name: state.profile?.name || current.name || '勇者',
+              email: state.user?.email || current.email || '',
+              coins: currentCoins - spend,
+              exp: Number(current.exp || 0),
+              level: app.utils.levelFromExp(Number(current.exp || 0)),
+              customNameSet: !!current.customNameSet,
+              avatarSkin: Object.assign({}, state.avatar)
+            });
+            tx.set(ref, nextProfile, { merge: true });
+            return nextProfile;
+          });
+          if (!result) return false;
+          state.profile = result;
+          app.ui.renderHUD();
+          return true;
+        }catch(error){
+          console.warn('spend coins fallback local', error);
+        }
+      }
+
+      const profile = Object.assign({}, state.profile || defaultProfile('旅人'));
+      const currentCoins = Number(profile.coins || 0);
+      if (currentCoins < spend) return false;
+      profile.coins = currentCoins - spend;
+      profile.avatarSkin = Object.assign({}, state.avatar);
+      state.profile = profile;
+      this.saveLocalProfile(profile);
+      app.ui.renderHUD();
+      return true;
+    },
+
     async submitFeedback(payload){
       const base = {
         uid: state.user?.uid || 'offline-user',

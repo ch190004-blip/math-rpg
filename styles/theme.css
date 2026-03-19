@@ -1,0 +1,73 @@
+:root{
+  --font-pixel:"Press Start 2P", cursive;
+  --font-main:"Noto Sans TC", system-ui, sans-serif;
+  --bg-deep:#07111a;
+  --hud-bg:rgba(8,24,18,.64);
+  --hud-border:rgba(255,255,255,.16);
+  --green-1:#d9ffcc;
+  --green-2:#a5f0ae;
+  --green-3:#49b56b;
+  --green-4:#1a6f3a;
+  --gold:#ffd55d;
+  --cyan:#7de7ff;
+  --sky:#d8f9ff;
+  --sky-2:#9de0ff;
+  --danger:#ff8577;
+  --shadow:0 14px 45px rgba(0,0,0,.28);
+  --panel:rgba(255,255,255,.14);
+  --panel-strong:rgba(255,255,255,.2);
+  --backdrop:rgba(4, 10, 18, .68);
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,255,255,.2), transparent 26%),
+    radial-gradient(circle at 80% 10%, rgba(125,231,255,.2), transparent 20%),
+    linear-gradient(180deg, #d9f6ff 0%, #8fd8ff 32%, #9ee7b8 32%, #80db8c 100%);
+  z-index:-3;
+}
+.pixel{font-family:var(--font-pixel)}
+.hidden{display:none!important}
+.locked{opacity:.55; filter:saturate(.5)}
+.badge{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.45rem .8rem; border-radius:999px;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.2);
+  font-size:.82rem; font-weight:800;
+}
+.soft-card{
+  background:linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.12));
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:26px;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(12px);
+}
+.icon-btn{
+  border:none;
+  padding:.75rem 1rem;
+  border-radius:16px;
+  background:rgba(255,255,255,.14);
+  color:#fff;
+  font-weight:800;
+  transition:transform .16s ease, background .16s ease;
+}
+.icon-btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.22)}
+.primary-btn{
+  border:none;
+  border-radius:18px;
+  padding:1rem 1.2rem;
+  background:linear-gradient(180deg,#fff8c9,#ffd55d);
+  color:#5c3c00;
+  font-weight:900;
+  box-shadow:0 12px 24px rgba(255,213,93,.28);
+}
+.secondary-btn{
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:18px;
+  padding:1rem 1.2rem;
+  background:rgba(7,27,18,.3);
+  color:#fff;
+  font-weight:800;
+}
+.tiny{font-size:.82rem; opacity:.88}

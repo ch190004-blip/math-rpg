@@ -21,6 +21,7 @@
 
   app.ui.renderTouch = function(){
     const root = document.getElementById('touch-root');
+    const actionLabel = state.sceneKey === 'TowerScene' ? '進門 / 上下樓' : '互動';
     root.innerHTML = `
       <div class="touch-shell">
         <div class="dpad">
@@ -29,8 +30,7 @@
           <div></div>${makeButton('↓', 'down')}<div></div>
         </div>
         <div class="action-buttons">
-          ${makeButton('互動', 'interact')}
-          ${makeButton('跳', 'jump')}
+          ${makeButton(actionLabel, 'interact')}
         </div>
       </div>
     `;

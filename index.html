@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Math RPG｜單一入口沉浸式世界</title>
+  <title>Math RPG｜封測世界版</title>
   <meta name="theme-color" content="#9ae6b4" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,12 +13,14 @@
   <link rel="stylesheet" href="./styles/layout.css" />
   <link rel="stylesheet" href="./styles/overlays.css" />
   <link rel="stylesheet" href="./styles/battle.css" />
+  <link rel="stylesheet" href="./styles/feedback.css" />
 </head>
 <body>
   <div id="app-shell">
     <div id="game-root"></div>
     <div id="hud-root"></div>
     <div id="overlay-root"></div>
+    <div id="modal-root"></div>
     <div id="touch-root"></div>
     <div id="toast-root"></div>
   </div>
@@ -35,16 +37,20 @@
   <script src="./js/services/firebase-service.js"></script>
 
   <script src="./js/data/chapter11-bank.js"></script>
+  <script src="./js/data/chapter7d11-bank.js"></script>
+  <script src="./js/data/chapter8d11-bank.js"></script>
+  <script src="./js/data/world-data.js"></script>
 
   <script src="./js/ui/hud.js"></script>
   <script src="./js/ui/overlays.js"></script>
+  <script src="./js/ui/feedback.js"></script>
   <script src="./js/ui/touch-controls.js"></script>
 
   <script src="./js/game/avatar-builder.js"></script>
   <script src="./js/game/scenes/boot.js"></script>
   <script src="./js/game/scenes/lobby.js"></script>
   <script src="./js/game/scenes/tower.js"></script>
-  <script src="./js/game/scenes/field11.js"></script>
+  <script src="./js/game/scenes/field.js"></script>
 
   <script src="./js/app.js"></script>
 </body>

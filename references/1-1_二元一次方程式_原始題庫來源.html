@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1-1 二元一次方程式 - 互動挑戰</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-cyan: #22d3ee;
+            --accent-cyan-hover: #06b6d4;
+            --accent-indigo: #818cf8;
+            --accent-indigo-hover: #6366f1;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Variables & Math Formatting */
+        i { font-family: 'Times New Roman', Times, serif; font-style: italic; color: var(--accent-cyan); padding: 0 2px;}
+        sup { font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; top: -0.5em; }
+        
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            margin: 0 0.3rem;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .frac .num {
+            border-bottom: 1px solid var(--text-main);
+            padding: 0 0.2rem 2px;
+        }
+        .frac .den {
+            padding: 2px 0.2rem 0;
+        }
+
+        /* Layout */
+        .sidebar {
+            width: 300px;
+            background-color: rgba(30, 41, 59, 0.95);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* CRITICAL: Scrollable sidebar */
+            padding: 1rem;
+            z-index: 20;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        /* Sidebar Elements */
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .type-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            flex-shrink: 0; /* CRITICAL: Prevent shrinking */
+            min-height: max-content;
+        }
+
+        .type-btn:hover {
+            border-color: var(--accent-indigo);
+            background: rgba(129, 140, 248, 0.1);
+            color: var(--text-main);
+            transform: translateX(5px);
+        }
+
+        .type-btn.active {
+            border-color: var(--accent-cyan);
+            background: rgba(34, 211, 238, 0.1);
+            color: var(--accent-cyan);
+            box-shadow: inset 4px 0 0 var(--accent-cyan);
+        }
+
+        .type-btn-title { font-weight: bold; font-size: 1.1rem; }
+        
+        .sub-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+        }
+        .active .sub-label { color: var(--accent-cyan); background: rgba(34, 211, 238, 0.15); }
+        .label-hard { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);}
+        .label-exam { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);}
+
+        /* Top Right Timer & Formula Modal Trigger */
+        .top-right-controls {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #timer {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            font-weight: 900;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(34, 211, 238, 0.5);
+            transition: color 0.3s;
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+            letter-spacing: 2px;
+        }
+
+        .formula-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--accent-indigo);
+            color: var(--accent-indigo);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .formula-btn:hover {
+            background: var(--accent-indigo);
+            color: white;
+            box-shadow: 0 0 15px rgba(129, 140, 248, 0.4);
+        }
+
+        /* Question Area */
+        .question-container {
+            max-width: 900px;
+            margin: 4rem auto 2rem;
+            width: 100%;
+        }
+
+        .scenario-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan));
+            color: #fff;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(34, 211, 238, 0.2);
+        }
+
+        .question-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            font-size: 1.25rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            min-height: 150px;
+        }
+
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--accent-cyan);
+        }
+
+        /* Feedback Areas */
+        .feedback-area {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid transparent;
+            animation: fadeIn 0.4s ease;
+            font-size: 1.1rem;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hint-area { border-left-color: var(--warning); }
+        .hint-area .title { color: var(--warning); font-weight: bold; margin-bottom: 0.5rem; }
+        
+        .answer-area { border-left-color: var(--success); }
+        .answer-area .title { color: var(--success); font-weight: bold; margin-bottom: 0.5rem; }
+
+        /* Action Buttons */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: white;
+        }
+
+        .btn-hint { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .btn-hint:hover { background: var(--warning); color: #fff; box-shadow: 0 0 15px rgba(245,158,11,0.4); }
+
+        .btn-ans { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .btn-ans:hover { background: var(--success); color: #fff; box-shadow: 0 0 15px rgba(16,185,129,0.4); }
+
+        .btn-next-calc { background: linear-gradient(to right, #3b82f6, #2563eb); }
+        .btn-next-calc:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4); }
+
+        .btn-next-app { background: linear-gradient(to right, #8b5cf6, #6d28d9); }
+        .btn-next-app:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(109, 40, 217, 0.4); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px; width: 90%;
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
+            position: relative;
+        }
+        .close-btn {
+            position: absolute; top: 1rem; right: 1.5rem;
+            font-size: 1.5rem; color: var(--text-muted); cursor: pointer;
+        }
+        .close-btn:hover { color: white; }
+        .modal-content h3 { color: var(--accent-cyan); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;}
+        .modal-content ul { list-style: none; margin-left: 0; }
+        .modal-content li { margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative;}
+        .modal-content li::before { content: '⚡'; position: absolute; left: 0; color: var(--accent-cyan);}
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            body { flex-direction: column; overflow-y: auto; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 1rem; border-right: none; border-bottom: 1px solid var(--border-color); align-items: stretch; gap: 1rem;}
+            .sidebar-title { display: none; }
+            .type-btn { margin-bottom: 0; min-width: 180px; flex: 1;}
+            .main-content { padding: 1rem; overflow-y: visible;}
+            .top-right-controls { position: relative; top: 0; right: 0; justify-content: space-between; margin-bottom: 1rem; width: 100%;}
+            .question-container { margin-top: 1rem; }
+            .controls { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-title"><span>📝</span> 1-1 二元一次方程式</div>
+        <!-- Buttons generated by JS -->
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Controls -->
+        <div class="top-right-controls">
+            <button class="formula-btn" onclick="toggleModal(true)">⚡ 破解核心心法</button>
+            <div id="timer">00:00</div>
+        </div>
+
+        <!-- Question Area -->
+        <div class="question-container">
+            <div id="scenario-badge" class="scenario-badge">基礎情境</div>
+            <div class="question-card">
+                <div id="q-text">請選擇左側題型開始挑戰！</div>
+                
+                <div id="hint-box" class="feedback-area hint-area">
+                    <div class="title">💡 解題思路：</div>
+                    <div id="h-text"></div>
+                </div>
+                
+                <div id="ans-box" class="feedback-area answer-area">
+                    <div class="title">🎯 標準解答：</div>
+                    <div id="a-text"></div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="controls">
+                <button class="btn btn-hint" onclick="showHint()">👁️ 掃描解題思路</button>
+                <button class="btn btn-ans" onclick="showAnswer()">✅ 提交並檢視解答</button>
+                <button class="btn btn-next-calc" onclick="generateQuestion(false)">🔄 基礎情境 (課本標準)</button>
+                <button class="btn btn-next-app" onclick="generateQuestion(true)">🚀 現代素養 (進階情境)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="formula-modal" onclick="if(event.target===this) toggleModal(false)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="toggleModal(false)">&times;</span>
+            <h3>⚡ 核心心法秘笈</h3>
+            <ul>
+                <li><b>代入求值：</b> 將指定的 <i>x</i>、<i>y</i> 數值，直接替換掉算式中的文字符號計算。</li>
+                <li><b>同類項合併：</b> 文字符號與次數完全相同的項，才能將係數相加減。(如 <i>3x</i> 與 <i>-x</i> 是同類項)。</li>
+                <li><b>分配律與去括號：</b> 括號外的數字乘進去時，每一項都要乘到；注意括號前若是負號，裡面各項皆須<b>變號</b>！</li>
+                <li><b>分數型化簡：</b> 必須先找分母的<b>最小公倍數</b>進行通分，合併時分子記得要加上隱形的括號。</li>
+                <li><b>整數解問題：</b> 二元一次方程式通常有無限多組解，但若限制為「正整數」或「數量」，解的數量就會受限，可用表格依序代入檢驗。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const questionTypes = [
+            { id: 0, title: "題型一：代入求值", sub: "<span class='sub-label'>隨堂練習 (P.8)</span>" },
+            { id: 1, title: "題型二：式子化簡", sub: "<span class='sub-label'>自我評量 (P.10)</span>" },
+            { id: 2, title: "題型三：分數型化簡", sub: "<span class='sub-label label-hard'>進階挑戰 (P.13)</span>" },
+            { id: 3, title: "題型四：情境列式", sub: "<span class='sub-label'>重新布題 (P.14)</span>" },
+            { id: 4, title: "題型五：整數解判斷", sub: "<span class='sub-label'>課外探索 (P.17)</span>" },
+            { id: 5, title: "題型六：綜合挑戰", sub: "<span class='sub-label label-exam'>111會考改編</span>" }
+        ];
+
+        let currentType = 0;
+        let currentIsApp = false;
+        
+        // Data for current generated question
+        let qData = { qText: "", hText: "", aText: "" };
+
+        // --- Timer Logic ---
+        let timerInterval;
+        let seconds = 0;
+
+        function formatTimer(sec) {
+            let m = Math.floor(sec / 60).toString().padStart(2, '0');
+            let s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            const el = document.getElementById('timer');
+            el.innerText = "00:00";
+            el.style.color = "#22d3ee";
+            timerInterval = setInterval(() => {
+                seconds++;
+                el.innerText = formatTimer(seconds);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('timer').style.color = "#64748b";
+        }
+
+        // --- Math Helper Functions ---
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randNonZero(min, max) { let r = 0; while(r===0) r = rand(min, max); return r; }
+        function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while(b) { let t = b; b = a % b; a = t; } return a; }
+        function lcm(a, b) { return (Math.abs(a * b)) / gcd(a, b); }
+
+        /**
+         * Formats a polynomial string from coefficients and variables.
+         * Example: formatPoly([2, -1, 3], ['x', 'y', '']) -> "2x - y + 3"
+         */
+        function formatPoly(coeffs, vars) {
+            let str = '';
+            let isFirstNonZero = true;
+            for(let i=0; i<coeffs.length; i++) {
+                let c = coeffs[i];
+                let v = vars[i];
+                if (c === 0) continue;
+                
+                let signStr = '';
+                if (isFirstNonZero) {
+                    if (c < 0) signStr = '-';
+                    isFirstNonZero = false;
+                } else {
+                    signStr = c > 0 ? ' &plus; ' : ' &minus; ';
+                }
+                
+                let absC = Math.abs(c);
+                let cStr = '';
+                // Don't show '1' if there is a variable, unless it's the constant term
+                if (absC !== 1 || v === '') cStr = absC;
+                // If coefficient is 1 or -1, and there is a variable, show nothing or just the sign
+                if (absC === 1 && v !== '') cStr = '';
+
+                let vStr = v ? `<i>${v}</i>` : '';
+                str += signStr + cStr + vStr;
+            }
+            return str === '' ? '0' : str;
+        }
+
+        function buildFrac(numHTML, denHTML) {
+            return `<span class="frac"><span class="num">${numHTML}</span><span class="den">${denHTML}</span></span>`;
+        }
+
+        // --- UI Initialization ---
+        function initSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            questionTypes.forEach((qt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `type-btn ${index === 0 ? 'active' : ''}`;
+                btn.onclick = () => selectType(index);
+                btn.innerHTML = `<span class="type-btn-title">${qt.title}</span>${qt.sub}`;
+                sidebar.appendChild(btn);
+            });
+        }
+
+        function selectType(index) {
+            currentType = index;
+            document.querySelectorAll('.type-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            generateQuestion(false); // Default to basic when switching type
+        }
+
+        function toggleModal(show) {
+            document.getElementById('formula-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function hideFeedback() {
+            document.getElementById('hint-box').style.display = 'none';
+            document.getElementById('ans-box').style.display = 'none';
+        }
+
+        function showHint() { document.getElementById('hint-box').style.display = 'block'; }
+        
+        function showAnswer() { 
+            document.getElementById('ans-box').style.display = 'block'; 
+            stopTimer(); // CRITICAL: Stop timer when showing answer
+        }
+
+        // --- Question Generation Logic ---
+        function generateQuestion(isApp) {
+            currentIsApp = isApp;
+            hideFeedback();
+            
+            // Update Badge
+            const badge = document.getElementById('scenario-badge');
+            badge.innerText = isApp ? "🚀 現代素養 (進階情境)" : "🔄 基礎情境 (課本標準)";
+            badge.style.background = isApp ? "linear-gradient(135deg, #8b5cf6, #ec4899)" : "linear-gradient(135deg, #3b82f6, #0ea5e9)";
+
+            let q = "", h = "", a = "";
+
+            switch(currentType) {
+                case 0: // 代入求值
+                    {
+                        let cx = randNonZero(-5, 5);
+                        let cy = randNonZero(-5, 5);
+                        let cc = rand(-10, 10);
+                        let vx = rand(-5, 5);
+                        let vy = rand(-5, 5);
+                        
+                        let expr = formatPoly([cx, cy, cc], ['x', 'y', '']);
+                        let ans = cx * vx + cy * vy + cc;
+
+                        if (!isApp) {
+                            q = `已知 <i>x</i> = ${vx}，<i>y</i> = ${vy}，求二元一次式 ${expr} 的值為何？`;
+                            h = `將數值代入：${cx}&times;(${vx}) ${cy>0?'+':'-'} ${Math.abs(cy)}&times;(${vy}) ${cc>=0?'+':'-'} ${Math.abs(cc)}`;
+                        } else {
+                            let games = ["星際爭霸", "賽博龐克", "幻獸帕魯"];
+                            let g = randItem(games);
+                            q = `在「${g}」遊戲中，角色的綜合戰力計算公式為：${expr}。<br>若玩家目前的科技等級 <i>x</i> = ${vx}，裝備等級 <i>y</i> = ${vy}，請計算該玩家的綜合戰力數值。`;
+                            h = `雖然包裝成遊戲情境，本質依然是將 <i>x</i>=${vx}, <i>y</i>=${vy} 代入式子中求值。`;
+                        }
+                        a = `${ans}`;
+                    }
+                    break;
+
+                case 1: // 式子化簡 (分配律與合併)
+                    {
+                        // a(dx + ey + f) + b(gx + hy + i)
+                        let outA = randNonZero(2, 5) * randItem([1, -1]);
+                        let outB = randNonZero(2, 5) * randItem([1, -1]); // allow negative
+                        let inD = randNonZero(-4, 4);
+                        let inE = randNonZero(-4, 4);
+                        let inF = rand(-5, 5);
+                        let inG = randNonZero(-4, 4);
+                        let inH = randNonZero(-4, 4);
+                        let inI = rand(-5, 5);
+
+                        let p1 = formatPoly([inD, inE, inF], ['x', 'y', '']);
+                        let p2 = formatPoly([inG, inH, inI], ['x', 'y', '']);
+                        
+                        let expr = `${outA === 1 ? '' : outA === -1 ? '-' : outA}(${p1}) ${outB > 0 ? '+' : '-'} ${Math.abs(outB) === 1 ? '' : Math.abs(outB)}(${p2})`;
+                        
+                        let finalX = outA * inD + outB * inG;
+                        let finalY = outA * inE + outB * inH;
+                        let finalC = outA * inF + outB * inI;
+                        let ansExpr = formatPoly([finalX, finalY, finalC], ['x', 'y', '']);
+
+                        if (!isApp) {
+                            q = `化簡下列各式：<br><br>${expr}`;
+                            h = `1. 利用「分配律」將括號外的數字乘進去每一項。<br>2. 特別注意！若括號外是負數，乘進去時裡面的每一項都要<b>變號</b>。<br>3. 將含有 <i>x</i>、<i>y</i> 及常數項的同類項分別合併。`;
+                        } else {
+                            let item1 = randItem(["晶片模組", "能量電池"]);
+                            let item2 = randItem(["光學鏡頭", "散熱風扇"]);
+                            let act1 = outA > 0 ? `進貨 ${outA} 箱` : `退回 ${-outA} 箱`;
+                            let act2 = outB > 0 ? `追加 ${outB} 箱` : `註銷 ${-outB} 箱`;
+                            
+                            q = `某科技工廠進行零件盤點。A型號箱子內裝有 ${p1} 單位的(${item1}(<i>x</i>)、${item2}(<i>y</i>)與雜件)。B型號箱子內裝有 ${p2} 單位的(${item1}、${item2}與雜件)。<br><br>今日倉管人員 ${act1} A型號箱子，且 ${act2} B型號箱子。請用化簡後的二元一次式表示總共異動了多少數量的零件？`;
+                            h = `將情境轉化為數學式：${expr}，接著進行展開與同類項合併。`;
+                        }
+                        a = `${ansExpr}`;
+                    }
+                    break;
+
+                case 2: // 分數型化簡
+                    {
+                        // (ax+by+c)/m  (+ or -) (dx+ey+f)/n
+                        let m = randItem([2, 3, 4]);
+                        let n = randItem([3, 4, 5]);
+                        if (m === n) n = m + 1; // ensure distinct
+                        let sign = randItem([1, -1]); // + or -
+                        
+                        let aC = randNonZero(-3, 3), bC = randNonZero(-3, 3), cC = rand(-5, 5);
+                        let dC = randNonZero(-3, 3), eC = randNonZero(-3, 3), fC = rand(-5, 5);
+                        
+                        let num1 = formatPoly([aC, bC, cC], ['x', 'y', '']);
+                        let num2 = formatPoly([dC, eC, fC], ['x', 'y', '']);
+                        
+                        let frac1 = buildFrac(num1, m);
+                        let frac2 = buildFrac(num2, n);
+                        let expr = `${frac1} ${sign > 0 ? '&plus;' : '&minus;'} ${frac2}`;
+
+                        let L = lcm(m, n);
+                        let m1 = L / m;
+                        let m2 = L / n;
+                        
+                        let finalX = m1 * aC + sign * m2 * dC;
+                        let finalY = m1 * bC + sign * m2 * eC;
+                        let finalC = m1 * cC + sign * m2 * fC;
+                        
+                        let finalNum = formatPoly([finalX, finalY, finalC], ['x', 'y', '']);
+                        let ansExpr = buildFrac(finalNum, L);
+                        
+                        // Handle case where numerator becomes 0
+                        if (finalX === 0 && finalY === 0 && finalC === 0) ansExpr = "0";
+
+                        if (!isApp) {
+                            q = `化簡下列分數二元一次式：<br><br><div style="font-size: 1.5rem; margin-top: 1rem;">${expr}</div>`;
+                            h = `1. 找出分母 ${m} 與 ${n} 的最小公倍數 ${L} 進行通分。<br>2. 分子擴分時要視為一個整體，記得加上括號：${m1}(${num1}) ${sign>0?'+':'-'} ${m2}(${num2})。<br>3. 展開分子後合併同類項。`;
+                        } else {
+                            q = `環境監測站收集了甲、乙兩區的空汙指數。甲區的平均指數為 ${frac1}，乙區的平均指數為 ${frac2}。<br><br>請計算甲、乙兩區指數的${sign > 0 ? '總和' : '差 (甲區減乙區)'}，並化簡為單一分數形式。`;
+                            h = `題意即為求 ${expr} 的化簡結果。記得通分合併時，分子的多項式要加上括號處理變號問題！`;
+                        }
+                        a = `<div style="font-size: 1.5rem;">${ansExpr}</div>`;
+                    }
+                    break;
+
+                case 3: // 情境列式
+                    {
+                        let pA = rand(15, 45);
+                        let pB = rand(20, 60);
+                        let total = rand(100, 500);
+                        
+                        if (!isApp) {
+                            let isChange = randItem([true, false]);
+                            let paid = Math.ceil(total / 100) * 100 + 100; // pay with nice hundreds
+                            let change = paid - total;
+                            
+                            if (isChange) {
+                                q = `鉛筆一枝 ${pA} 元，筆記本一本 ${pB} 元。小明買了 <i>x</i> 枝鉛筆和 <i>y</i> 本筆記本，拿 ${paid} 元給老闆，老闆找他 ${change} 元。請依題意列出二元一次方程式。`;
+                                h = `總花費 = 單價&times;數量之和。總花費也等於 (付出的錢 &minus; 找回的錢)。`;
+                                a = `${pA}<i>x</i> &plus; ${pB}<i>y</i> = ${total}`;
+                            } else {
+                                q = `鉛筆一枝 ${pA} 元，筆記本一本 ${pB} 元。小明買了 <i>x</i> 枝鉛筆和 <i>y</i> 本筆記本，總共花了 ${total} 元。請依題意列出二元一次方程式。`;
+                                h = `單價&times;數量，然後相加等於總花費。`;
+                                a = `${pA}<i>x</i> &plus; ${pB}<i>y</i> = ${total}`;
+                            }
+                        } else {
+                            let events = ["碳足跡(kg)", "耗電量(W)", "雲端容量(GB)"];
+                            let ev = randItem(events);
+                            let actionA = randItem(["伺服器A運轉", "高階繪圖", "上傳影片"]);
+                            let actionB = randItem(["伺服器B運轉", "一般運算", "備份文件"]);
+                            
+                            q = `某綠能企業控管資源，已知進行一次「${actionA}」會產生 ${pA} 單位的${ev}，進行一次「${actionB}」會產生 ${pB} 單位的${ev}。<br><br>若今日總共產生了 ${total} 單位的${ev}，假設「${actionA}」執行了 <i>x</i> 次，「${actionB}」執行了 <i>y</i> 次，請列出對應的二元一次方程式。`;
+                            h = `無論情境為何，數量關聯的本質相同：(${actionA}的消耗量)&times;<i>x</i> &plus; (${actionB}的消耗量)&times;<i>y</i> = 總消耗量。`;
+                            a = `${pA}<i>x</i> &plus; ${pB}<i>y</i> = ${total}`;
+                        }
+                    }
+                    break;
+
+                case 4: // 整數解判斷
+                    {
+                        // px + qy = C. Find non-negative/positive integer solutions
+                        let p = randItem([3, 5, 7]);
+                        let q = randItem([2, 4]); // p, q coprime mostly
+                        let ansCount = 0;
+                        let validPairs = [];
+                        let requirePositive = randItem([true, false]);
+                        
+                        // Generate a C that gives 2-5 solutions
+                        let C = rand(20, 50);
+                        
+                        for (let x = (requirePositive ? 1 : 0); x <= Math.floor(C/p); x++) {
+                            let rem = C - p * x;
+                            if (rem >= (requirePositive ? q : 0) && rem % q === 0) {
+                                let y = rem / q;
+                                ansCount++;
+                                validPairs.push(`(<i>x</i>=${x}, <i>y</i>=${y})`);
+                            }
+                        }
+
+                        // ensure at least 1 solution for good user experience
+                        if(ansCount === 0) {
+                            return generateQuestion(isApp); 
+                        }
+
+                        if (!isApp) {
+                            let constraint = requirePositive ? "正整數解" : "非負整數解 (包含 0)";
+                            q = `請問二元一次方程式 ${p}<i>x</i> &plus; ${q}<i>y</i> = ${C} 共有幾組${constraint}？`;
+                            h = `1. ${requirePositive ? '正整數代表從 1 開始' : '非負整數代表從 0 開始'}。<br>2. 建議將係數較大的 <i>x</i> 依序代入 (<i>x</i> = ${requirePositive?1:0}, ${requirePositive?2:1}...)，檢查剩下的數是否能被 ${q} 整除。`;
+                        } else {
+                            let item1 = "精裝明信片";
+                            let item2 = "紀念書籤";
+                            let constraintStr = requirePositive ? "且兩種至少都買一個" : "可以只買其中一種";
+                            
+                            q = `文創商店中，${item1}每張 ${p}0 元，${item2}每張 ${q}0 元。小華帶了 ${C}0 元想把錢剛好花完買這兩樣商品，${constraintStr}。<br><br>請問小華共有幾種不同的買法？`;
+                            h = `設買了 <i>x</i> 張明信片、<i>y</i> 張書籤。列出方程式 ${p}0<i>x</i> &plus; ${q}0<i>y</i> = ${C}0，化簡得 ${p}<i>x</i> &plus; ${q}<i>y</i> = ${C}。<br>依題意求 <i>x</i>, <i>y</i> 的${requirePositive ? '正整數' : '大於等於0的整數'}解有幾組。`;
+                        }
+                        
+                        let pairStr = validPairs.join('、');
+                        a = `共有 <b>${ansCount}</b> 組解/買法。<br><span style="font-size:1rem; color:var(--text-muted);">(符合的組合為：${pairStr})</span>`;
+                    }
+                    break;
+
+                case 5: // 綜合挑戰 (111會考改編邏輯：折扣差價找定價差)
+                    {
+                        // 111會考邏輯： 兩件商品 x, y (x>y). 
+                        // 方案A：兩件打 K1 折. 
+                        // 方案B：第二件(較便宜的y)打 K2 折，第一件原價。
+                        // 兩者花費相差 Diff 元。求 x - y = ?
+                        // 條件：為了讓式子能變成 (x-y) 的倍數，我們需要 K2 = 2*K1 - 1
+                        
+                        let config = randItem([
+                            {k1: 0.8, k2: 0.6, name1: "8折", name2: "6折"}, // 111 original
+                            {k1: 0.9, k2: 0.8, name1: "9折", name2: "8折"},
+                            {k1: 0.75, k2: 0.5, name1: "75折", name2: "5折"}
+                        ]);
+                        
+                        // Diff = (Cost B - Cost A) = (x + k2*y) - (k1*x + k1*y) = (1-k1)x + (k2-k1)y
+                        // Since k2 = 2*k1 - 1, (k2-k1) = 2*k1 - 1 - k1 = k1 - 1 = -(1-k1)
+                        // So Diff = (1-k1)(x - y)
+                        // x - y = Diff / (1-k1)
+                        
+                        let xyDiff = rand(2, 6) * 50; // 100, 150, 200, 250, 300
+                        let Diff = Math.round((1 - config.k1) * xyDiff);
+
+                        let A_is_cheaper = (1 - config.k1) > 0; // Cost B - Cost A > 0 => Cost A is cheaper
+
+                        q = `某服飾品牌正舉辦週年慶特惠活動。小明打算同時購買一件外套(定價 <i>x</i> 元)及一件T恤(定價 <i>y</i> 元)，且 <i>x</i> > <i>y</i>。<br><br>
+                        他有兩種結帳方案可選：<br>
+                        【方案A】持有VIP折價券，所有購買商品定價皆打 <b>${config.name1}</b>。<br>
+                        【方案B】參加店內活動，任選兩件，價位較低者打 <b>${config.name2}</b> (較高者原價計算)。<br><br>
+                        小明精算後發現，使用【方案A】的花費比【方案B】<b>便宜了 ${Diff} 元</b>。<br>
+                        請問：這兩件衣服的定價相差多少元 (即 <i>x</i> &minus; <i>y</i>)？`;
+
+                        h = `這是一道素養型會考改編題。嘗試把兩種方案的花費列成二元一次式：<br>
+                        方案A花費 = ${config.k1}(<i>x</i> &plus; <i>y</i>)<br>
+                        方案B花費 = <i>x</i> &plus; ${config.k2}<i>y</i><br>
+                        根據題意，(方案B花費) &minus; (方案A花費) = ${Diff}。將式子相減並化簡，你會發現剛好可以提出 (<i>x</i> &minus; <i>y</i>)！`;
+
+                        a = `定價相差 <b>${xyDiff}</b> 元。<br><br>
+                        <span style="font-size:1rem; color:var(--text-muted);">
+                        解析：<br>
+                        (<i>x</i> &plus; ${config.k2}<i>y</i>) &minus; ${config.k1}(<i>x</i> &plus; <i>y</i>) = ${Diff}<br>
+                        => <i>x</i> &plus; ${config.k2}<i>y</i> &minus; ${config.k1}<i>x</i> &minus; ${config.k1}<i>y</i> = ${Diff}<br>
+                        => ${(1-config.k1).toFixed(2)}<i>x</i> &minus; ${(config.k1 - config.k2).toFixed(2)}<i>y</i> = ${Diff}<br>
+                        => ${(1-config.k1).toFixed(2)}(<i>x</i> &minus; <i>y</i>) = ${Diff}<br>
+                        => <i>x</i> &minus; <i>y</i> = ${Diff} &divide; ${(1-config.k1).toFixed(2)} = ${xyDiff}
+                        </span>`;
+                    }
+                    break;
+            }
+
+            qData = { qText: q, hText: h, aText: a };
+            document.getElementById('q-text').innerHTML = qData.qText;
+            document.getElementById('h-text').innerHTML = qData.hText;
+            document.getElementById('a-text').innerHTML = qData.aText;
+            
+            startTimer(); // CRITICAL: Start timer on new question
+        }
+
+        // Initialize
+        initSidebar();
+        generateQuestion(false); // Start with first type
+    </script>
+</body>
+</html>

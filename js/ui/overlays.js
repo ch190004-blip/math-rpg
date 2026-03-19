@@ -1,7 +1,7 @@
-
 (function(app){
   const state = app.state;
   const utils = app.utils;
+  const world = () => app.data.world;
 
   function stopBattleTimer(){
     if (state.battle.timerId) {
@@ -19,11 +19,245 @@
     }, 1000);
   }
 
+  function gradientColor(color){
+    return `linear-gradient(180deg, ${color} 0%, rgba(255,255,255,.35) 8%, ${color} 100%)`;
+  }
+
+  function slimeAccessory(slime){
+    if (slime?.feature === 'crystal') return '<div class="slime-crystal"></div>';
+    return '';
+  }
+
+  function svgNumberLine(points, opts={}){
+    const labelsTop = opts.labelsTop !== false;
+    const labelsBottom = opts.labelsBottom !== false;
+    const pad = 42;
+    const width = 760;
+    const height = 150;
+    const minV = Math.min(...points.map(p => p.value));
+    const maxV = Math.max(...points.map(p => p.value));
+    const span = Math.max(1, maxV - minV);
+    const scale = (value) => pad + ((value - minV) / span) * (width - pad * 2);
+
+    const labelTopY = 34;
+    const lineY = 78;
+    const labelBottomY = 122;
+    const pointEls = points.map((p) => {
+      const x = scale(p.value);
+      const size = p.size || 12;
+      const stroke = p.stroke || '#ffffff';
+      const fill = p.fill || '#ffd55d';
+      const topText = p.topText || '';
+      const bottomText = p.bottomText || '';
+      return `
+        ${labelsTop && topText ? `<text x="${x}" y="${labelTopY}" text-anchor="middle" class="svg-label top">${topText}</text>` : ''}
+        <circle cx="${x}" cy="${lineY}" r="${size}" fill="${fill}" stroke="${stroke}" stroke-width="4"></circle>
+        ${labelsBottom && bottomText ? `<text x="${x}" y="${labelBottomY}" text-anchor="middle" class="svg-label bottom">${bottomText}</text>` : ''}
+      `;
+    }).join('');
+
+    return `
+      <svg class="battle-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <line x1="${pad}" y1="${lineY}" x2="${width - pad}" y2="${lineY}" class="svg-track"></line>
+        ${pointEls}
+      </svg>
+    `;
+  }
+
+  function svgSegmentLine(segments, targetIndex, leftLabel, rightLabel){
+    const width = 760;
+    const height = 140;
+    const pad = 52;
+    const y = 66;
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+      const x = pad + (i / segments) * (width - pad * 2);
+      const big = i === targetIndex;
+      points.push(`
+        <circle cx="${x}" cy="${y}" r="${big ? 13 : 8}" class="${big ? 'svg-point target' : 'svg-point'}"></circle>
+      `);
+    }
+    return `
+      <svg class="battle-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <line x1="${pad}" y1="${y}" x2="${width - pad}" y2="${y}" class="svg-track"></line>
+        ${points.join('')}
+        <text x="${pad}" y="118" text-anchor="middle" class="svg-label bottom">${leftLabel}</text>
+        <text x="${width/2}" y="28" text-anchor="middle" class="svg-label top">第 ${targetIndex} 個等分點</text>
+        <text x="${width - pad}" y="118" text-anchor="middle" class="svg-label bottom">${rightLabel}</text>
+      </svg>
+    `;
+  }
+
+  function renderVisual(q){
+    const v = q.visual;
+    if (!v) return '';
+
+    if (v.kind === 'relative-track') {
+      return `
+        <div class="visual-box">
+          <div class="visual-title">相對位置示意</div>
+          <div class="visual-copy">只標基準點與目前點，不再直接標出差值，避免把答案畫出來。</div>
+          ${svgNumberLine([
+            { value: v.baseline, topText:'基準點', bottomText:`${v.baseline}`, fill:'#ffd55d' },
+            { value: v.actual, topText:'目前點', bottomText:`${v.actual}`, fill:'#7de7ff' }
+          ])}
+        </div>`;
+    }
+
+    if (v.kind === 'delta-cards') {
+      return `<div class="visual-box visual-grid two">
+        <div class="visual-card"><span>基準量</span><b>${v.base}</b></div>
+        <div class="visual-card"><span>實際量</span><b>${v.actual}</b></div>
+      </div>`;
+    }
+
+    if (v.kind === 'two-point-line') {
+      return `
+        <div class="visual-box">
+          <div class="visual-title">數線位置示意</div>
+          ${svgNumberLine([
+            { value: v.left, topText:'A', bottomText:`${v.left}`, fill:'#ffd55d' },
+            { value: 0, topText:'O', bottomText:'0', fill:'#dfe9f3' },
+            { value: v.right, topText:'B', bottomText:`${v.right}`, fill:'#7de7ff' }
+          ])}
+        </div>`;
+    }
+
+    if (v.kind === 'segment-divisions') {
+      return `
+        <div class="visual-box">
+          <div class="visual-title">等分示意圖</div>
+          ${svgSegmentLine(v.segments, v.targetIndex, String(v.left), String(v.right))}
+        </div>`;
+    }
+
+    if (v.kind === 'compare-cards') {
+      return `<div class="visual-box visual-grid three">
+        ${v.items.map(item => `<div class="visual-card"><span>${item.label}</span><b>${item.value}</b></div>`).join('')}
+      </div>`;
+    }
+
+    if (v.kind === 'fraction-compare') {
+      return `<div class="visual-box visual-grid two">
+        <div class="visual-card big"><span>左式</span><b>${v.left}</b></div>
+        <div class="visual-card big"><span>右式</span><b>${v.right}</b></div>
+      </div>`;
+    }
+
+    if (v.kind === 'mirror-points') {
+      return `
+        <div class="visual-box">
+          <div class="visual-title">原點對稱示意</div>
+          <div class="visual-copy">左右兩點互為相反數，和原點距離相等。</div>
+          ${svgNumberLine([
+            { value:-1, topText:'相反數', bottomText:'?', fill:'#ffd55d' },
+            { value:0, topText:'O', bottomText:'0', fill:'#dfe9f3' },
+            { value:1, topText:'x', bottomText:'?', fill:'#7de7ff' }
+          ])}
+        </div>`;
+    }
+
+    if (v.kind === 'absolute-range') {
+      return `
+        <div class="visual-box">
+          <div class="visual-title">距離限制示意</div>
+          <div class="visual-copy">只提醒與 0 的距離限制，不直接標答案集合。</div>
+          ${svgNumberLine([
+            { value:-v.limit, topText:`${v.inclusive ? '≤' : '<'} ${v.limit}`, bottomText:`-${v.limit}`, fill:'#ffd55d' },
+            { value:0, topText:'O', bottomText:'0', fill:'#dfe9f3' },
+            { value:v.limit, topText:`${v.inclusive ? '≤' : '<'} ${v.limit}`, bottomText:`${v.limit}`, fill:'#7de7ff' }
+          ])}
+        </div>`;
+    }
+
+    if (v.kind === 'hidden-distance-line') {
+      const entries = Object.entries(v.points || {});
+      const enriched = entries.concat(entries.some(([key]) => key === 'O') ? [] : [['O', 0]]);
+      return `
+        <div class="visual-box">
+          <div class="visual-title">位置判讀圖</div>
+          <div class="visual-copy">圖上只給點位，不直接標距離答案。</div>
+          ${svgNumberLine(enriched.map(([key, value], index) => ({
+            value,
+            topText:key,
+            bottomText:key === 'O' ? '0' : '',
+            fill:key === 'O' ? '#dfe9f3' : (index % 2 === 0 ? '#ffd55d' : '#7de7ff')
+          })), { labelsBottom:true })}
+        </div>`;
+    }
+
+    if (v.kind === 'pair-card') {
+      return `<div class="visual-box visual-grid three">
+        <div class="visual-card"><span>條件一</span><b>${v.left}</b></div>
+        <div class="visual-card"><span>條件二</span><b>${v.right}</b></div>
+        <div class="visual-card"><span>關係</span><b>${v.relation}</b></div>
+      </div>`;
+    }
+
+    if (v.kind === 'sequence-terms') {
+      return `<div class="visual-box">
+        <div class="visual-title">數列觀察卡</div>
+        <div class="visual-grid four">
+          ${v.values.map((item, idx) => `<div class="visual-card"><span>第 ${idx + 1} 項</span><b>${item}</b></div>`).join('')}
+        </div>
+        ${v.highlight ? `<div class="visual-copy">${v.highlight}</div>` : ''}
+      </div>`;
+    }
+
+    if (v.kind === 'formula-cards') {
+      return `<div class="visual-box visual-grid three">
+        ${v.items.map(item => `<div class="visual-card"><span>已知條件</span><b>${item}</b></div>`).join('')}
+      </div>`;
+    }
+
+    if (v.kind === 'equation-cards') {
+      return `<div class="visual-box visual-grid three">
+        <div class="visual-card"><span>條件 A</span><b>${v.left}</b></div>
+        <div class="visual-card"><span>條件 B</span><b>${v.right}</b></div>
+        <div class="visual-card"><span>提問</span><b>${v.answer}</b></div>
+      </div>`;
+    }
+
+    if (v.kind === 'poly-cards') {
+      return `<div class="visual-box visual-grid three">
+        ${v.items.map(item => `<div class="visual-card"><span>提示</span><b>${item}</b></div>`).join('')}
+      </div>`;
+    }
+
+    return '';
+  }
+
+  async function checkAnswer(){
+    if (state.battle.inputLocked) return;
+    const q = state.battle.currentQuestion;
+    const input = document.getElementById('battle-answer');
+    const feedback = document.getElementById('battle-feedback');
+    const raw = input ? input.value : '';
+
+    if (!raw || !raw.trim()) {
+      if (feedback) feedback.innerHTML = '請先輸入答案。';
+      return;
+    }
+    if (!q || typeof q.validate !== 'function') return;
+
+    if (q.validate(raw)) {
+      state.battle.inputLocked = true;
+      if (feedback) feedback.innerHTML = `<span class="ok">答對了！</span> ${q.successText}`;
+      await app.services.firebase.addReward(q.rewardCoins, q.rewardExp);
+      app.ui.toast(`獲得 ${q.rewardCoins} 金幣、${q.rewardExp} EXP`, 'good');
+      setTimeout(() => app.runtime.closeBattle(true), 880);
+    } else {
+      if (feedback) feedback.innerHTML = `<span class="bad">再試一次。</span> ${q.feedbackLead}`;
+      if (input) input.select();
+    }
+  }
+
   function renderTitle(){
     const root = document.getElementById('overlay-root');
     const authCopy = !state.authReady
       ? '<span class="loading-pulse"></span>'
-      : (state.user ? '已維持登入，可直接進世界' : '請先用 Google 登入');
+      : (state.user ? '已維持登入，可直接進入封測世界' : '請先用 Google 登入');
+
     root.innerHTML = `
       <div class="overlay-screen">
         <div class="title-panel soft-card">
@@ -32,31 +266,33 @@
               <div class="brand-row">
                 <div class="big-logo">∑</div>
                 <div>
-                  <div class="badge">單一網址・沉浸式數學 RPG</div>
-                  <h1 class="hero-title">Math RPG<br>七上世界入口</h1>
+                  <div class="badge">單一網址・封測準備版</div>
+                  <h1 class="hero-title">Math RPG<br>六塔大世界</h1>
                 </div>
               </div>
               <p class="hero-sub">
-                Google 登入後，從明亮的大廳原野出發，進入七上之塔，再深入 1-1 原野與十系史萊姆交戰。
-                重新整理只會回到這個入口，但登入狀態會保留。
+                Google 登入後，從明亮的大廳原野出發，依序進入七上、七下、八上、八下、九上、九下之塔。
+                每章一層樓，原野內把不同題型史萊姆混在同一區，方便老師與學生直接選題測試。
+                重新整理會回到入口，但登入狀態會保留。
               </p>
               <div class="hero-preview">
                 <article class="preview-box">
                   <h4>大廳原野</h4>
-                  <p>勇者鬥惡龍感的 top-down 草原探索，明確撞到塔門就能進入七上之塔。</p>
+                  <p>六座塔入口縮成清楚的小門口，直接撞到門後按 E 就能進入。</p>
                 </article>
                 <article class="preview-box">
-                  <h4>七上之塔</h4>
-                  <p>像洛克人般的橫向三區塔樓，左右移動、跳躍、搭升降台選章。</p>
+                  <h4>學期之塔</h4>
+                  <p>每章一層樓，左側下樓、右側上樓、中央進章節，不再需要跳躍解謎。</p>
                 </article>
                 <article class="preview-box">
-                  <h4>1-1 十系史萊姆</h4>
-                  <p>10 題型 10 色史萊姆；頭上晶角的是素養題，答對直接領金幣與經驗。</p>
+                  <h4>章節原野</h4>
+                  <p>同題型同色、晶角代表素養題；不同題型混區活動，答對就拿金幣與 EXP。</p>
                 </article>
               </div>
             </div>
-            <div class="tiny">目前進度：大廳 → 七上之塔 → 1-1 原野 → 題型一到題型十史萊姆戰鬥</div>
+            <div class="tiny">目前正式上架：七上 1-1、七下 1-1、八下 1-1。所有場景右下角都能直接送 BUG / 回饋。</div>
           </section>
+
           <aside class="menu-card soft-card">
             <div class="menu-block">
               <div class="menu-title">世界入口</div>
@@ -70,235 +306,46 @@
             </div>
 
             <div class="menu-block">
-              <div class="menu-title">目前規則</div>
+              <div class="menu-title">目前上架內容</div>
               <div class="status-list">
-                <div class="status-item"><span>網址</span><strong>固定只有 index.html</strong></div>
-                <div class="status-item"><span>重新整理</span><strong>回世界入口</strong></div>
-                <div class="status-item"><span>登入狀態</span><strong>保留，不自動登出</strong></div>
-                <div class="status-item"><span>1-1 內容</span><strong>10 題型史萊姆已接上</strong></div>
-                <div class="status-item"><span>速度</span><strong>測試版 2 倍移動</strong></div>
+                <div class="status-item"><span>七上</span><strong>1-1 負數與數線</strong></div>
+                <div class="status-item"><span>七下</span><strong>1-1 二元一次方程式</strong></div>
+                <div class="status-item"><span>八下</span><strong>1-1 等差數列</strong></div>
+                <div class="status-item"><span>塔樓動線</span><strong>每章一層 / 上下樓分開</strong></div>
+                <div class="status-item"><span>章節原野</span><strong>混區多題型史萊姆</strong></div>
               </div>
             </div>
           </aside>
         </div>
+        <button class="feedback-fab" id="title-feedback-btn">BUG / 回饋</button>
       </div>
     `;
 
     const loginBtn = document.getElementById('login-btn');
     const enterBtn = document.getElementById('enter-world-btn');
     const offlineBtn = document.getElementById('offline-btn');
+    const feedbackBtn = document.getElementById('title-feedback-btn');
 
+    if (feedbackBtn) feedbackBtn.onclick = () => app.ui.openFeedback();
     if (loginBtn) loginBtn.onclick = () => app.services.firebase.signIn();
     if (enterBtn) enterBtn.onclick = () => app.runtime.enterWorld();
     if (offlineBtn) offlineBtn.onclick = () => {
-      if (!state.user) {
-        state.user = { uid: 'offline-user', displayName: '離線旅人', email: '' };
-      }
+      state.user = { uid:'offline-user', displayName:'離線旅人', email:'' };
+      state.profile = app.services.firebase.getLocalProfile();
+      state.authReady = true;
+      app.ui.toast('已進入離線試玩', 'good');
       app.runtime.enterWorld();
     };
-  }
-
-  function gradientColor(hex){
-    return `radial-gradient(circle at 35% 25%, rgba(255,255,255,.32), transparent 20%), linear-gradient(180deg, ${hex}, ${hex})`;
-  }
-
-  function slimeAccessory(slime){
-    if (!slime || slime.mode !== 'literacy') return '';
-    return '<div class="slime-crystal"></div>';
-  }
-
-  function renderVisual(q){
-    if (!q.visual) return '';
-    const v = q.visual;
-
-    if (v.kind === 'relative-track') {
-      const min = Math.min(v.baseline, v.actual) - 4;
-      const max = Math.max(v.baseline, v.actual) + 4;
-      const baseLeft = ((v.baseline - min) / (max - min)) * 100;
-      const actualLeft = ((v.actual - min) / (max - min)) * 100;
-      return `
-        <div class="visual-box">
-          <div class="visual-title">相對基線示意</div>
-          <div class="numberline">
-            <div class="nl-track">
-              <div class="nl-point gold" style="left:${baseLeft}%"></div>
-              <div class="nl-point blue" style="left:${actualLeft}%"></div>
-              <div class="nl-label" style="left:${baseLeft}%">${v.baselineLabel}<br><b>${v.baseline}</b></div>
-              <div class="nl-label" style="left:${actualLeft}%">${v.actualLabel}<br><b>${v.actual}</b></div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'delta-cards') {
-      return `
-        <div class="visual-box visual-grid two">
-          <div class="visual-card"><span>基準</span><b>${v.base}</b></div>
-          <div class="visual-card"><span>實際</span><b>${v.actual}</b></div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'two-point-line') {
-      const min = v.left - 3;
-      const max = v.right + 3;
-      const leftPos = ((v.left - min) / (max - min)) * 100;
-      const rightPos = ((v.right - min) / (max - min)) * 100;
-      const zeroPos = ((0 - min) / (max - min)) * 100;
-      return `
-        <div class="visual-box">
-          <div class="visual-title">數線位置示意</div>
-          <div class="numberline">
-            <div class="nl-track">
-              <div class="nl-point silver" style="left:${zeroPos}%"></div>
-              <div class="nl-point gold" style="left:${leftPos}%"></div>
-              <div class="nl-point blue" style="left:${rightPos}%"></div>
-              <div class="nl-label" style="left:${leftPos}%">A<br><b>${v.left}</b></div>
-              <div class="nl-label" style="left:${zeroPos}%">O<br><b>0</b></div>
-              <div class="nl-label" style="left:${rightPos}%">B<br><b>${v.right}</b></div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'segment-divisions') {
-      const points = [];
-      for (let i = 0; i <= v.segments; i++) {
-        const left = (i / v.segments) * 100;
-        points.push(`<div class="segment-mark ${i === v.targetIndex ? 'target' : ''}" style="left:${left}%"></div>`);
-      }
-      return `
-        <div class="visual-box">
-          <div class="visual-title">等分示意圖</div>
-          <div class="segment-visual">
-            <div class="segment-line">${points.join('')}</div>
-            <div class="segment-labels">
-              <span>${v.left}</span>
-              <span>目標：第 ${v.targetIndex} 個等分點</span>
-              <span>${v.right}</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'compare-cards') {
-      return `
-        <div class="visual-box visual-grid three">
-          ${v.items.map(item => `<div class="visual-card"><span>${item.label}</span><b>${item.value}</b></div>`).join('')}
-        </div>
-      `;
-    }
-
-    if (v.kind === 'fraction-compare') {
-      return `
-        <div class="visual-box visual-grid two">
-          <div class="visual-card big"><span>左式</span><b>${v.left}</b></div>
-          <div class="visual-card big"><span>右式</span><b>${v.right}</b></div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'mirror-points') {
-      return `
-        <div class="visual-box">
-          <div class="visual-title">原點對稱示意</div>
-          <div class="numberline">
-            <div class="nl-track">
-              <div class="nl-point gold" style="left:22%"></div>
-              <div class="nl-point silver" style="left:50%"></div>
-              <div class="nl-point blue" style="left:78%"></div>
-              <div class="nl-label" style="left:22%">相反數</div>
-              <div class="nl-label" style="left:50%">O</div>
-              <div class="nl-label" style="left:78%">x</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'absolute-range') {
-      return `
-        <div class="visual-box">
-          <div class="visual-title">距離限制示意</div>
-          <div class="range-visual">
-            <div class="range-track"></div>
-            <div class="range-highlight"></div>
-            <div class="range-mark left">${v.inclusive ? '≤' : '<'} ${v.limit}</div>
-            <div class="range-mark center">0</div>
-            <div class="range-mark right">${v.inclusive ? '≤' : '<'} ${v.limit}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'hidden-distance-line') {
-      const positions = Object.entries(v.points);
-      const values = positions.map(item => item[1]);
-      const min = Math.min(...values) - 2;
-      const max = Math.max(...values) + 2;
-      return `
-        <div class="visual-box">
-          <div class="visual-title">只看位置，不透露距離數值</div>
-          <div class="numberline">
-            <div class="nl-track">
-              ${positions.map(([key, value]) => {
-                const left = ((value - min) / (max - min)) * 100;
-                return `<div class="nl-point ${key === 'A' ? 'gold' : 'blue'}" style="left:${left}%"></div><div class="nl-label" style="left:${left}%">${key}</div>`;
-              }).join('')}
-              <div class="nl-point silver" style="left:${((0 - min) / (max - min)) * 100}%"></div>
-              <div class="nl-label" style="left:${((0 - min) / (max - min)) * 100}%">O</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (v.kind === 'pair-card') {
-      return `
-        <div class="visual-box visual-grid three">
-          <div class="visual-card"><span>條件一</span><b>${v.left}</b></div>
-          <div class="visual-card"><span>條件二</span><b>${v.right}</b></div>
-          <div class="visual-card"><span>關係</span><b>${v.relation}</b></div>
-        </div>
-      `;
-    }
-
-    return '';
-  }
-
-  async function checkAnswer(){
-    if (state.battle.inputLocked) return;
-    const q = state.battle.currentQuestion;
-    const input = document.getElementById('battle-answer');
-    const feedback = document.getElementById('battle-feedback');
-    const raw = input ? input.value : '';
-    if (!raw || !raw.trim()) {
-      if (feedback) feedback.innerHTML = '請先輸入答案。';
-      return;
-    }
-    if (!q || typeof q.validate !== 'function') return;
-
-    if (q.validate(raw)) {
-      state.battle.inputLocked = true;
-      if (feedback) feedback.innerHTML = `<span class="ok">答對了！</span> ${q.successText}`;
-      await app.services.firebase.addReward(q.rewardCoins, q.rewardExp);
-      app.ui.toast(`獲得 ${q.rewardCoins} 金幣、${q.rewardExp} EXP`, 'good');
-      setTimeout(() => app.runtime.closeBattle(true), 900);
-    } else {
-      if (feedback) feedback.innerHTML = `<span class="bad">再試一次。</span> ${q.feedbackLead}`;
-      if (input) input.select();
-    }
   }
 
   function renderBattle(){
     const battle = state.currentBattle;
     if (!battle) return;
-    const q = state.battle.currentQuestion || app.data.chapter11.generateQuestion(battle.typeId, battle.mode, battle.slime);
+    const bank = world().getBank(battle.chapterId);
+    const q = state.battle.currentQuestion || bank.generateQuestion(battle.typeId, battle.mode, battle.slime);
     state.battle.currentQuestion = q;
-    const typeMeta = app.data.chapter11.getTypeMeta(battle.typeId);
+    const typeMeta = bank.getTypeMeta(battle.typeId);
+    const chapter = world().getChapter(battle.chapterId);
     const root = document.getElementById('overlay-root');
 
     root.innerHTML = `
@@ -315,48 +362,50 @@
                 </div>
               </div>
             </div>
+
             <div>
-              <div class="badge">${typeMeta.title}</div>
+              <div class="badge">${chapter?.label || '章節戰鬥'}</div>
               <h3 style="margin-top:.8rem;font-size:1.25rem">${battle.slime.name}</h3>
               <p class="tiny" style="margin-top:.45rem;line-height:1.9">${battle.slime.aura}・一題一戰・答對離場</p>
             </div>
+
             <div class="battle-mini">
+              <div class="mini-item"><span>題型</span><strong>${typeMeta.title}</strong></div>
               <div class="mini-item"><span>模式</span><strong>${battle.mode === 'literacy' ? '素養題' : '課本標準題'}</strong></div>
               <div class="mini-item"><span>計時</span><strong id="battle-timer">${utils.formatTime(state.battle.seconds)}</strong></div>
               <div class="mini-item"><span>獎勵</span><strong>💰 ${q.rewardCoins} / EXP ${q.rewardExp}</strong></div>
-              <div class="mini-item"><span>顏色</span><strong>${typeMeta.slug}</strong></div>
             </div>
           </section>
 
           <section class="battle-right soft-card">
             <div class="battle-head">
               <div>
-                <div class="badge">${q.title}</div>
-                <div class="battle-title" style="margin-top:.55rem">答對就回到 1-1 原野</div>
+                <div class="badge" style="margin-bottom:.55rem">${typeMeta.slug || typeMeta.title}</div>
+                <div class="battle-title">${q.title}</div>
               </div>
               <div class="mode-lock">${battle.mode === 'literacy' ? '素養題' : '標準題'}</div>
             </div>
 
             <div class="question-card">
               ${q.prompt}
-              ${renderVisual(q)}
+              ${q.visual ? renderVisual(q) : ''}
             </div>
 
             <div class="feedback" id="battle-feedback">${q.feedbackLead}</div>
 
-            <div>
-              <div class="answer-row">
-                <div>
-                  <label for="battle-answer">輸入答案</label>
-                  <input id="battle-answer" class="answer-input" placeholder="${q.placeholder || '請輸入答案'}" inputmode="${q.inputMode || 'text'}" autocomplete="off" />
-                </div>
+            <div class="answer-row">
+              <div>
+                <label for="battle-answer">輸入答案</label>
+                <input id="battle-answer" class="answer-input" autocomplete="off" placeholder="${q.placeholder || '請輸入答案'}" />
+              </div>
+              <div class="footer-actions right-actions">
                 <button class="primary-btn" id="submit-answer-btn">作答</button>
               </div>
+            </div>
 
-              <div class="footer-actions" style="margin-top:1rem">
-                <div class="tiny">此戰鬥不提供換題，也不能切換標準題或素養題。</div>
-                <button class="secondary-btn" id="retreat-battle-btn">撤退回原野</button>
-              </div>
+            <div class="footer-actions">
+              <div class="tiny">題目與模式已鎖定；答對後直接領獎回原野。</div>
+              <button class="secondary-btn" id="retreat-battle-btn">撤退回原野</button>
             </div>
           </section>
         </div>
@@ -394,6 +443,7 @@
   app.ui.renderAll = function(){
     app.ui.renderHUD();
     app.ui.renderOverlay();
+    if (app.ui.renderFeedback) app.ui.renderFeedback();
     app.ui.renderTouch();
   };
 
@@ -404,7 +454,8 @@
     state.battle.seconds = 0;
     state.battle.inputLocked = false;
     if (!state.battle.currentQuestion) {
-      state.battle.currentQuestion = app.data.chapter11.generateQuestion(context.typeId, context.mode, context.slime);
+      const bank = world().getBank(context.chapterId);
+      state.battle.currentQuestion = bank.generateQuestion(context.typeId, context.mode, context.slime);
     }
     app.ui.renderAll();
   };

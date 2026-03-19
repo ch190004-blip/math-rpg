@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1-1 等差數列 | 互動解題系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html, body { height: fit-content; margin: 0; padding: 0; background-color: #f8fafc; }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #0f172a;
+            background-image: radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(192, 132, 252, 0.05), transparent 25%);
+            color: #f8fafc;
+        }
+        .game-card { transition: all 0.2s ease; }
+        @media (hover: hover) { .game-card:hover { transform: translateY(-4px); } }
+        .game-card:active { transform: scale(0.96); }
+        .active-card { ring: 2px; ring-offset: 2px; transform: scale(0.98); }
+        
+        /* 數學排版專屬 (嚴禁 LaTeX) */
+        .v-x { color: #fde047; font-weight: bold; font-family: "Times New Roman", serif; font-style: italic;}
+        .v-y { color: #f472b6; font-weight: bold; font-family: "Times New Roman", serif; font-style: italic;}
+        .v-n { color: #a78bfa; font-weight: bold; font-family: "Times New Roman", serif; font-style: italic;}
+        .v-d { color: #34d399; font-weight: bold; font-family: "Times New Roman", serif; font-style: italic;}
+        .v-ans { color: #22d3ee; font-weight: bold; text-shadow: 0 0 5px rgba(34, 211, 238, 0.4); }
+        .math { font-family: "Times New Roman", serif; font-style: italic; letter-spacing: 1px; color: #22d3ee;}
+        .sup { vertical-align: super; font-size: 0.7em; margin-left: 1px; }
+        .sub { vertical-align: sub; font-size: 0.7em; margin-left: 1px; }
+        
+        /* 嚴格禁 LaTeX，自訂精美分數 CSS */
+        .frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 0.3vw; font-family: "Times New Roman", serif; font-size: 0.9em; line-height: 1.2;}
+        .frac .num { border-bottom: 2px solid currentColor; padding: 0 0.3vw; width: 100%; text-align: center; }
+        .frac .den { padding: 0 0.3vw; width: 100%; text-align: center; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.85); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-content { max-height: 85vh; overflow-y: auto; background: #1e293b; border: 1px solid #22d3ee; box-shadow: 0 0 30px rgba(34, 211, 238, 0.3); }
+        
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+    </style>
+</head>
+<body class="p-4 pb-10">
+
+    <div class="max-w-6xl mx-auto">
+        
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 pb-4 border-b-2 border-slate-700 gap-4 mt-2">
+            <h1 class="text-3xl md:text-4xl font-black text-white flex items-center tracking-wide" style="text-shadow: 0 0 10px rgba(255,255,255,0.2);">
+                <span class="w-12 h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center mr-3 text-xl shadow-lg"><i class="fa-solid fa-arrow-trend-up"></i></span>
+                1-1 等差數列
+            </h1>
+            <button onclick="toggleModal(true)" class="bg-transparent text-cyan-400 border border-cyan-400 px-5 py-2.5 rounded-xl font-bold hover:bg-cyan-500 hover:text-slate-900 transition shadow-[0_0_10px_rgba(34,211,238,0.3)] flex items-center">
+                <i class="fa-solid fa-bolt mr-2 text-lg"></i> 破解核心心法
+            </button>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            
+            <div class="w-full lg:w-5/12 flex flex-col gap-6">
+                
+                <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700">
+                    <h2 class="text-xl font-bold text-slate-200 mb-4 flex items-center px-2 border-l-4 border-violet-500 pl-3">
+                        <i class="fa-solid fa-stairs text-violet-500 mr-2"></i> 數列基礎與公式
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        
+                        <button onclick="selectType(1, this)" class="type-btn active game-card group bg-slate-900 border border-slate-700 hover:border-violet-400 rounded-xl p-4 flex items-center text-left shadow-sm relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-violet-900/50 text-violet-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-violet-500 group-hover:text-white transition-colors text-xl">
+                                <span class="font-bold text-sm">T1</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-slate-200 group-hover:text-violet-400">基礎公差與推項</h3>
+                                <p class="text-xs text-slate-400 mt-1">判別公差並推算數列的下一項</p>
+                            </div>
+                        </button>
+
+                        <button onclick="selectType(2, this)" class="type-btn game-card group bg-slate-900 border border-slate-700 hover:border-cyan-400 rounded-xl p-4 flex items-center text-left shadow-sm relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-cyan-900/50 text-cyan-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-cyan-500 group-hover:text-white transition-colors text-xl">
+                                <span class="font-bold text-sm">T2</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-slate-200 group-hover:text-cyan-400">第 n 項公式運算</h3>
+                                <p class="text-xs text-slate-400 mt-1">利用首項與公差，直接求出特定項</p>
+                            </div>
+                        </button>
+
+                        <button onclick="selectType(3, this)" class="type-btn game-card group bg-slate-900 border border-slate-700 hover:border-amber-400 rounded-xl p-4 flex items-center text-left shadow-sm relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-amber-900/50 text-amber-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-amber-500 group-hover:text-white transition-colors text-xl">
+                                <span class="font-bold text-sm">T3</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-slate-200 group-hover:text-amber-400">逆向尋找項數 n</h3>
+                                <p class="text-xs text-slate-400 mt-1">已知某數值，反推它是數列的第幾項</p>
+                            </div>
+                        </button>
+
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700">
+                    <h2 class="text-xl font-bold text-slate-200 mb-4 flex items-center px-2 border-l-4 border-emerald-500 pl-3">
+                        <i class="fa-solid fa-scale-balanced text-emerald-500 mr-2"></i> 中項與素養應用
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        
+                        <button onclick="selectType(4, this)" class="type-btn game-card group bg-slate-900 border border-slate-700 hover:border-emerald-400 rounded-xl p-4 flex items-center text-left shadow-sm relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-emerald-900/50 text-emerald-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors text-xl">
+                                <span class="font-bold text-sm">T4</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-slate-200 group-hover:text-emerald-400">等差中項</h3>
+                                <p class="text-xs text-slate-400 mt-1">計算相鄰兩項的中間值</p>
+                            </div>
+                        </button>
+
+                        <button onclick="selectType(5, this)" class="type-btn game-card group bg-slate-900 border border-slate-700 hover:border-rose-400 rounded-xl p-4 flex items-center text-left shadow-sm relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-rose-900/50 text-rose-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-rose-500 group-hover:text-white transition-colors text-xl">
+                                <span class="font-bold text-sm">T5</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-slate-200 group-hover:text-rose-400">生活規律應用題</h3>
+                                <p class="text-xs text-slate-400 mt-1">存錢、座位排數等情境數據分析</p>
+                            </div>
+                        </button>
+
+                        <button onclick="selectType(6, this)" class="type-btn game-card group bg-gradient-to-r from-slate-900 to-slate-800 border border-pink-500/50 hover:border-pink-400 rounded-xl p-4 flex items-center text-left shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] relative overflow-hidden focus:outline-none">
+                            <div class="w-12 h-12 bg-slate-800 border border-pink-500 text-pink-400 rounded-xl flex-shrink-0 flex items-center justify-center mr-4 group-hover:bg-pink-500 group-hover:text-white transition-colors text-xl z-10">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <div class="flex-grow z-10">
+                                <h3 class="font-black text-white group-hover:text-pink-300 tracking-wider">會考挑戰：跨項推演</h3>
+                                <p class="text-xs text-slate-400 mt-1">已知不相鄰的兩項，求公差與特定項</p>
+                            </div>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="contentArea" class="w-full lg:w-7/12 flex flex-col relative bg-slate-800/90 p-6 md:p-8 rounded-2xl border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)] h-fit overflow-y-auto max-h-[85vh]">
+                
+                <div class="absolute top-4 right-4 md:top-6 md:right-6">
+                    <div id="timer" class="font-mono text-xl md:text-2xl text-cyan-400 font-black bg-slate-900 px-3 py-1 rounded-lg border border-cyan-500/50 shadow-inner transition-colors duration-300">00:00</div>
+                </div>
+
+                <div id="mnemonicBox" class="text-purple-300 font-bold text-base md:text-lg bg-purple-900/30 border-l-4 border-purple-500 px-4 py-2 mt-12 md:mt-10 mb-6 inline-block w-fit rounded-r-lg">
+                    💡 系統提示：請選擇左側關卡
+                </div>
+
+                <div class="text-xl md:text-2xl leading-relaxed text-slate-100 font-medium mb-6">
+                    <div id="questionText">請從左側任務選單，挑選你要挑戰的關卡！</div>
+                </div>
+
+                <div id="actionButtons" class="hidden flex-wrap gap-3 mt-4 border-t border-slate-700 pt-6">
+                    <button onclick="showHint()" class="game-card bg-transparent text-orange-400 border border-orange-500 hover:bg-orange-500 hover:text-slate-900 px-4 py-2.5 rounded-xl font-bold flex items-center text-sm md:text-base transition-colors">
+                        <i class="fa-solid fa-eye mr-2"></i> 顯示步驟提示
+                    </button>
+                    <button onclick="showAnswer()" class="game-card bg-emerald-500 text-slate-900 hover:bg-emerald-400 px-4 py-2.5 rounded-xl font-bold flex items-center shadow-[0_0_10px_rgba(16,185,129,0.4)] text-sm md:text-base">
+                        <i class="fa-solid fa-check mr-2"></i> 提交與解答
+                    </button>
+                    <button onclick="generateQuestion(false)" class="game-card bg-slate-700 text-white border border-slate-500 hover:bg-slate-600 px-4 py-2.5 rounded-xl font-bold flex items-center text-sm md:text-base ml-auto">
+                        <i class="fa-solid fa-rotate-right mr-2"></i> 練基礎題
+                    </button>
+                    <button onclick="generateQuestion(true)" class="game-card bg-blue-600 text-white hover:bg-blue-500 px-4 py-2.5 rounded-xl font-bold flex items-center shadow-[0_0_10px_rgba(37,99,235,0.4)] text-sm md:text-base">
+                        <i class="fa-solid fa-rocket mr-2"></i> 練素養題
+                    </button>
+                </div>
+
+                <div id="hintBox" class="hidden mt-6 p-5 bg-slate-900 border border-orange-500/50 border-l-4 border-l-orange-500 rounded-xl text-slate-300 text-lg leading-relaxed shadow-sm"></div>
+                <div id="ansBox" class="hidden mt-6 p-5 bg-slate-900 border border-emerald-500/50 border-l-4 border-l-emerald-500 rounded-xl text-emerald-400 text-xl font-black shadow-sm tracking-wide"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="formulaModal" class="modal">
+        <div class="modal-content p-6 md:p-8 rounded-2xl w-11/12 max-w-2xl relative text-slate-200">
+            <button onclick="toggleModal(false)" class="absolute top-4 right-5 text-slate-400 hover:text-rose-500 text-3xl transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-2xl font-black text-cyan-400 mb-6 border-b-2 border-slate-700 pb-3 flex items-center">
+                <i class="fa-solid fa-book-open text-amber-500 mr-3"></i> 核心觀念秘笈
+            </h2>
+            
+            <div class="space-y-4">
+                <div class="bg-slate-800 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                    <h3 class="font-bold text-indigo-400 text-lg mb-1">【觀念一】公差與第 $n$ 項公式</h3>
+                    <p class="text-slate-300 text-base">
+                        1. <span class="highlight">公差 (<span class="math v-d">d</span>)</span>：後項減前項的差。即 <span class="math"><span class="v-d">d</span> = a<span class="sub">2</span> - a<span class="sub">1</span></span>。<br>
+                        2. <span class="highlight">第 n 項公式</span>：<span class="math">a<span class="sub v-n">n</span> = a<span class="sub">1</span> + (<span class="v-n">n</span> - 1) &times; <span class="v-d">d</span></span>。<br>
+                        (記法：要走到第 <span class="math v-n">n</span> 項，必須從第 1 項出發，跨出 <span class="math"><span class="v-n">n</span>-1</span> 個步伐)
+                    </p>
+                </div>
+                <div class="bg-slate-800 border-l-4 border-emerald-500 p-4 rounded-r-lg">
+                    <h3 class="font-bold text-emerald-400 text-lg mb-1">【觀念二】尋找項數 $n$</h3>
+                    <p class="text-slate-300 text-base">
+                        已知數值求它是第幾項，可以利用公式反推：<br>
+                        <span class="highlight-blue">總距離 &divide; 步伐大小 + 1</span><br>
+                        公式：<span class="math"><span class="v-n">n</span> = <div class="frac"><div class="num">a<span class="sub v-n">n</span> - a<span class="sub">1</span></div><div class="den"><span class="v-d">d</span></div></div> + 1</span>。<br>
+                    </p>
+                </div>
+                <div class="bg-slate-800 border-l-4 border-rose-500 p-4 rounded-r-lg">
+                    <h3 class="font-bold text-rose-400 text-lg mb-1">【觀念三】等差中項</h3>
+                    <p class="text-slate-300 text-base">
+                        若 <span class="math">a, b, c</span> 三數成等差數列，則中間的 <span class="math">b</span> 稱為 <span class="math">a</span> 和 <span class="math">c</span> 的等差中項。<br>
+                        性質：左右相加除以 2，就是中間的數。<br>
+                        公式：<span class="math">b = <div class="frac"><div class="num">a + c</div><div class="den">2</div></div></span> （或 <span class="math">2b = a + c</span>）
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentType = 1;
+        let timerInterval;
+        let seconds = 0;
+        
+        function toggleModal(show) { document.getElementById('formulaModal').style.display = show ? 'flex' : 'none'; }
+        function formatTimer(sec) { return `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`; }
+        
+        function startTimer() {
+            clearInterval(timerInterval); seconds = 0;
+            document.getElementById('timer').innerText = "00:00";
+            document.getElementById('timer').classList.remove('text-slate-500');
+            timerInterval = setInterval(() => { document.getElementById('timer').innerText = formatTimer(++seconds); }, 1000);
+        }
+        function stopTimer() { clearInterval(timerInterval); document.getElementById('timer').classList.add('text-slate-500'); }
+
+        function selectType(type, btnElement) {
+            currentType = type;
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderColor = '';
+                btn.style.boxShadow = '';
+            });
+            btnElement.classList.add('active');
+            
+            let colorMap = {1:'#a855f7', 2:'#22d3ee', 3:'#fbbf24', 4:'#34d399', 5:'#fb7185', 6:'#ec4899'};
+            btnElement.style.borderColor = colorMap[type];
+            btnElement.style.boxShadow = `0 0 15px ${colorMap[type]}40`;
+            
+            generateQuestion(false); 
+        }
+
+        // ==========================================
+        // ✨ 數學運算與工具函式
+        // ==========================================
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                const c = document.getElementById('contentArea');
+                if(c && c.scrollHeight > c.clientHeight) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+                else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 50);
+        }
+
+        function generateQuestion(isApp = false) {
+            let mText = "", qText = "", hText = "", aText = "";
+            let appTag = isApp ? `<span class="app-tag bg-purple-600 shadow-[0_0_8px_rgba(147,51,234,0.6)] px-2 py-1 rounded text-sm mb-2 inline-block">🚀 現代素養任務</span><br>` : `<span class="app-tag bg-slate-600 shadow-none px-2 py-1 rounded text-sm mb-2 inline-block">📖 課本標準演練</span><br>`;
+
+            try {
+                switch (currentType) {
+                    case 1: 
+                        // T1: 基礎公差與推項
+                        let a1_1 = getRandomInt(-15, 15);
+                        let d1 = getRandomInt(-8, 8);
+                        while(d1 === 0) d1 = getRandomInt(-8, 8);
+                        let a2_1 = a1_1 + d1;
+                        let a3_1 = a2_1 + d1;
+                        let a4_1 = a3_1 + d1;
+
+                        mText = "💡 系統破解：【後項減前項找出公差，再加上去就是下一項】";
+                        if(isApp) {
+                            qText = `${appTag}在自動化機器的參數日誌中，連續記錄了三次測試的壓力值數據，依序為：<span class="math">${a1_1}, ${a2_1}, ${a3_1}, \u2026</span><br>
+                            經工程師確認，這些數據呈現穩定的「等差」規律。<br>
+                            請問該參數的「公差」為多少？若依此規律，第四次的壓力值應設定為多少？`;
+                        } else {
+                            qText = `${appTag}已知一個等差數列的前三項為：<span class="math">${a1_1}, ${a2_1}, ${a3_1}, \u2026</span><br>
+                            請求出此數列的公差 <span class="math v-d">d</span>，以及第 4 項 <span class="math">a<span class="sub">4</span></span> 的值。`;
+                        }
+                        
+                        hText = `1. 公差 <span class="math v-d">d</span> = 第 2 項 - 第 1 項 = <span class="math">${a2_1} - (${a1_1})</span>。<br>
+                        2. 第 4 項 = 第 3 項 + 公差 <span class="math v-d">d</span> = <span class="math">${a3_1} + <span class="v-d">d</span></span>。`;
+                        
+                        aText = `計算公差 <span class="math v-d">d</span>：<br>
+                        <span class="math v-d">d</span> = <span class="math">a<span class="sub">2</span> - a<span class="sub">1</span> = ${a2_1} - (${a1_1}) = ${d1}</span><br>
+                        推算第 4 項：<br>
+                        <span class="math">a<span class="sub">4</span> = a<span class="sub">3</span> + <span class="v-d">d</span> = ${a3_1} + (${d1}) = ${a4_1}</span><br>
+                        ➡ 答案：公差為 <span class="v-ans math">${d1}</span>，第 4 項為 <span class="v-ans math">${a4_1}</span>`;
+                        break;
+
+                    case 2: 
+                        // T2: 第 n 項公式運算
+                        let a1_2 = getRandomInt(-20, 20);
+                        let d2 = getRandomInt(-6, 6);
+                        while(d2 === 0) d2 = getRandomInt(-6, 6);
+                        let n2 = getRandomInt(15, 45);
+                        let ans2 = a1_2 + (n2 - 1) * d2;
+
+                        mText = "💡 系統破解：【套用公式：首項加上 (n-1) 個公差】";
+                        if(isApp) {
+                            qText = `${appTag}在一座新型溫室中，系統設定植物的光照強度會以等差數列的規律遞增(或遞減)。<br>
+                            已知第 1 天的光照強度指數為 <span class="math">${a1_2}</span>，且每天的變化量(公差)固定為 <span class="math">${d2}</span>。<br>
+                            請問到了第 <span class="math v-n">${n2}</span> 天時，光照強度指數會變為多少？`;
+                        } else {
+                            qText = `${appTag}已知一個等差數列的首項 <span class="math">a<span class="sub">1</span> = ${a1_2}</span>，公差 <span class="math v-d">d</span> = <span class="math">${d2}</span>。<br>
+                            請問此數列的第 <span class="math v-n">${n2}</span> 項 (<span class="math">a<span class="sub">${n2}</span></span>) 為多少？`;
+                        }
+                        
+                        hText = `1. 使用第 <span class="math v-n">n</span> 項公式：<span class="math">a<span class="sub v-n">n</span> = a<span class="sub">1</span> + (<span class="v-n">n</span> - 1) &times; <span class="v-d">d</span></span>。<br>
+                        2. 將 <span class="math">a<span class="sub">1</span> = ${a1_2}</span>、<span class="math v-n">n</span> = <span class="math">${n2}</span>、<span class="math v-d">d</span> = <span class="math">${d2}</span> 代入計算。<br>
+                        3. 注意先乘除後加減，先算 <span class="math">(${n2} - 1) &times; ${d2}</span>。`;
+                        
+                        aText = `套用等差數列第 <span class="math v-n">n</span> 項公式：<br>
+                        <span class="math">a<span class="sub">${n2}</span> = a<span class="sub">1</span> + (${n2} - 1) &times; <span class="v-d">d</span></span><br>
+                        <span class="math">= ${a1_2} + ${n2 - 1} &times; (${d2})</span><br>
+                        <span class="math">= ${a1_2} + (${(n2 - 1) * d2})</span><br>
+                        <span class="math">= ${ans2}</span><br>
+                        ➡ 答案：第 <span class="math">${n2}</span> 項為 <span class="v-ans math">${ans2}</span>`;
+                        break;
+
+                    case 3: 
+                        // T3: 尋找項數 n
+                        let a1_3 = getRandomInt(-10, 30);
+                        let d3 = getRandomInt(3, 8);
+                        if (Math.random() > 0.5) d3 = -d3; // Pos or neg
+                        let n3 = getRandomInt(20, 50);
+                        let an3 = a1_3 + (n3 - 1) * d3;
+                        let a2_3 = a1_3 + d3;
+                        let a3_3 = a2_3 + d3;
+
+                        mText = "💡 系統破解：【(目標值 - 首項) ÷ 公差 + 1 = 項數】";
+                        if(isApp) {
+                            qText = `${appTag}雲端資料庫的備份任務設定了每個節點的處理量呈等差規律：<br>
+                            <span class="math">${a1_3}, ${a2_3}, ${a3_3}, \u2026</span><br>
+                            系統監測到最後一個節點的處理量為 <span class="math">${an3}</span>。<br>
+                            請問這是第幾個節點所處理的數據量？`;
+                        } else {
+                            qText = `${appTag}已知一等差數列：<span class="math">${a1_3}, ${a2_3}, ${a3_3}, \u2026</span><br>
+                            請問 <span class="math">${an3}</span> 是這個數列的第幾項？`;
+                        }
+                        
+                        hText = `1. 先找出首項 <span class="math">a<span class="sub">1</span> = ${a1_3}</span>，以及公差 <span class="math v-d">d</span> = <span class="math">${a2_3} - (${a1_3})</span>。<br>
+                        2. 將已知數值代入公式反求 <span class="math v-n">n</span>：<br>
+                        <span class="math v-n">n</span> = <span class="math"><div class="frac"><div class="num">a<span class="sub v-n">n</span> - a<span class="sub">1</span></div><div class="den"><span class="v-d">d</span></div></div> + 1</span>。<br>
+                        3. 把最後一項減掉第一項，除以公差，最後記得「<span class="highlight">加 1</span>」。`;
+                        
+                        aText = `先求出公差 <span class="math v-d">d</span>：<br>
+                        <span class="math v-d">d</span> = <span class="math">${a2_3} - (${a1_3}) = ${d3}</span><br>
+                        利用公式反推項數 <span class="math v-n">n</span>：<br>
+                        <span class="math v-n">n</span> = <span class="math"><div class="frac"><div class="num">${an3} - (${a1_3})</div><div class="den">${d3}</div></div> + 1</span><br>
+                        <span class="math v-n">n</span> = <span class="math"><div class="frac"><div class="num">${an3 - a1_3}</div><div class="den">${d3}</div></div> + 1</span><br>
+                        <span class="math v-n">n</span> = <span class="math">${(an3 - a1_3) / d3} + 1 = ${n3}</span><br>
+                        ➡ 答案：第 <span class="v-ans math">${n3}</span> 項 (或節點)`;
+                        break;
+
+                    case 4: 
+                        // T4: 等差中項
+                        // Generate two numbers with same parity so sum is even
+                        let numA4 = getRandomInt(-20, 30);
+                        let numC4 = getRandomInt(-20, 30);
+                        while ((numA4 + numC4) % 2 !== 0 || numA4 === numC4) {
+                            numC4 = getRandomInt(-20, 30);
+                        }
+                        let b4 = (numA4 + numC4) / 2;
+
+                        mText = "💡 系統破解：【左右兩個數相加，除以 2 就是中間數】";
+                        if(isApp) {
+                            qText = `${appTag}在圖形渲染的補幀(Interpolation)運算中，系統需要計算兩個關鍵影格之間的過渡數值，以維持等速的動態效果。<br>
+                            已知第 1 個影格的座標值為 <span class="math">${numA4}</span>，第 3 個影格的座標值為 <span class="math">${numC4}</span>。<br>
+                            請問夾在中間的第 2 個影格，其等差中項座標值應為多少？`;
+                        } else {
+                            qText = `${appTag}已知 <span class="math">${numA4}, <span class="v-x">x</span>, ${numC4}</span> 三數成等差數列。<br>
+                            請問 <span class="v-x font-bold">x</span> (即 ${numA4} 與 ${numC4} 的等差中項) 的值為多少？`;
+                        }
+                        
+                        hText = `1. 當三數成等差數列時，中間的數稱為「等差中項」。<br>
+                        2. 計算方法：<span class="math">等差中項 = <div class="frac"><div class="num">前項 + 後項</div><div class="den">2</div></div></span>。<br>
+                        3. 將 <span class="math">${numA4}</span> 與 <span class="math">${numC4}</span> 相加後除以 2 即可。`;
+                        
+                        aText = `利用等差中項的性質計算：<br>
+                        <span class="v-x">x</span> = <span class="math"><div class="frac"><div class="num">${numA4} + (${numC4})</div><div class="den">2</div></div></span><br>
+                        <span class="v-x">x</span> = <span class="math"><div class="frac"><div class="num">${numA4 + numC4}</div><div class="den">2</div></div></span><br>
+                        <span class="v-x">x</span> = <span class="math">${b4}</span><br>
+                        ➡ 答案：<span class="v-ans math">${b4}</span>`;
+                        break;
+
+                    case 5: 
+                        // T5: 生活應用題 (座位/存錢)
+                        let isSeats = randChoice([true, false]);
+                        let a1_5, d5, n5, ans5;
+
+                        if (isSeats) {
+                            a1_5 = getRandomInt(15, 30);
+                            d5 = getRandomInt(2, 5);
+                            n5 = getRandomInt(10, 25);
+                            ans5 = a1_5 + (n5 - 1) * d5;
+                            mText = "💡 系統破解：【找對第一排的數量與每排增加的量，套用公式】";
+                            if(isApp) {
+                                qText = `${appTag}國家劇院的觀眾席座位設計呈現扇形展開。第 1 排有 <span class="math">${a1_5}</span> 個座位，為了讓後方視線無死角，每一排都比前一排多出 <span class="math">${d5}</span> 個座位。<br>
+                                請問第 <span class="math">${n5}</span> 排總共有多少個座位？`;
+                            } else {
+                                qText = `${appTag}某電影院的座位排列成等差數列，已知第 1 排有 <span class="math">${a1_5}</span> 個座位，之後每一排都比前一排多 <span class="math">${d5}</span> 個座位。<br>
+                                請問第 <span class="math">${n5}</span> 排共有多少個座位？`;
+                            }
+                            hText = `1. 將情境轉換為等差數列：首項 <span class="math">a<span class="sub">1</span> = ${a1_5}</span>，公差 <span class="math v-d">d</span> = <span class="math">${d5}</span>。<br>
+                            2. 題目要求第 <span class="math">${n5}</span> 排的座位數，即求 <span class="math">a<span class="sub">${n5}</span></span>。<br>
+                            3. 代入公式：<span class="math">a<span class="sub v-n">n</span> = a<span class="sub">1</span> + (<span class="v-n">n</span> - 1) &times; <span class="v-d">d</span></span>。`;
+                        } else {
+                            a1_5 = getRandomInt(50, 100);
+                            d5 = getRandomInt(10, 30);
+                            n5 = getRandomInt(15, 30);
+                            ans5 = a1_5 + (n5 - 1) * d5;
+                            mText = "💡 系統破解：【第一天存的當首項，每天多存的當公差】";
+                            if(isApp) {
+                                qText = `${appTag}小翊參加了「漸進式理財儲蓄挑戰」。他在第 1 天存入了 <span class="math">${a1_5}</span> 元，之後系統設定每天要比前一天多存入 <span class="math">${d5}</span> 元。<br>
+                                請問執行到第 <span class="math">${n5}</span> 天時，當天他必須存入多少元？`;
+                            } else {
+                                qText = `${appTag}小翊想買一台腳踏車，他決定每天存錢。第 1 天存 <span class="math">${a1_5}</span> 元，之後每一天都比前一天多存 <span class="math">${d5}</span> 元。<br>
+                                請問到了第 <span class="math">${n5}</span> 天，當天他要存多少元？`;
+                            }
+                            hText = `1. 將情境轉換為等差數列：首項 <span class="math">a<span class="sub">1</span> = ${a1_5}</span>，公差 <span class="math v-d">d</span> = <span class="math">${d5}</span>。<br>
+                            2. 要求第 <span class="math">${n5}</span> 天當天存的金額，即求 <span class="math">a<span class="sub">${n5}</span></span>。<br>
+                            3. 代入公式計算。`;
+                        }
+
+                        aText = `將情境轉為等差數列模型：<br>
+                        首項 <span class="math">a<span class="sub">1</span> = ${a1_5}</span>，公差 <span class="math v-d">d</span> = <span class="math">${d5}</span><br>
+                        求第 <span class="math">${n5}</span> 項：<br>
+                        <span class="math">a<span class="sub">${n5}</span> = a<span class="sub">1</span> + (${n5} - 1) &times; <span class="v-d">d</span></span><br>
+                        <span class="math">= ${a1_5} + ${n5 - 1} &times; ${d5}</span><br>
+                        <span class="math">= ${a1_5} + ${(n5 - 1) * d5}</span><br>
+                        <span class="math">= ${ans5}</span><br>
+                        ➡ 答案：<span class="v-ans math">${ans5}</span>`;
+                        break;
+
+                    case 6: 
+                        // T6: 會考挑戰：跨項推演 (Given ap, aq, find ak)
+                        let p6 = getRandomInt(2, 5);
+                        let q6 = getRandomInt(6, 9);
+                        let d6 = getRandomInt(2, 6);
+                        if (Math.random() > 0.5) d6 = -d6;
+                        let a1_6 = getRandomInt(-10, 20);
+                        
+                        let ap_val = a1_6 + (p6 - 1) * d6;
+                        let aq_val = a1_6 + (q6 - 1) * d6;
+                        
+                        let k6 = getRandomInt(10, 15);
+                        let ans6 = a1_6 + (k6 - 1) * d6;
+
+                        // Options
+                        let optVals6 = [ans6, ans6 + d6, ans6 - d6, ans6 + 2*d6];
+                        let options6 = optVals6.map(val => ({ text: `<span class="math">${val}</span>`, isCorrect: val === ans6 }));
+                        shuffleArray(options6);
+                        
+                        let correctLabel6 = "";
+                        let optLabels6 = ['(A)', '(B)', '(C)', '(D)'];
+                        let htmlOptions6 = "";
+                        options6.forEach((opt, index) => {
+                            htmlOptions6 += `<div class="mb-2">${optLabels6[index]} ${opt.text}</div>`;
+                            if (opt.isCorrect) correctLabel6 = optLabels6[index];
+                        });
+
+                        mText = "💀 會考大魔王：【利用兩項的差除以項數差，快速求出公差 d】";
+                        if(isApp) {
+                            qText = `${appTag}區塊鏈系統在同步帳本時，區塊容量呈現等差規律增加。<br>
+                            已知第 <span class="math">${p6}</span> 個區塊的容量為 <span class="math">${ap_val}</span> MB，第 <span class="math">${q6}</span> 個區塊的容量為 <span class="math">${aq_val}</span> MB。<br>
+                            為了預留空間，請推算第 <span class="math">${k6}</span> 個區塊的容量應為多少 MB？<br><br>
+                            ${htmlOptions6}`;
+                        } else {
+                            qText = `${appTag}已知一等差數列的第 <span class="math">${p6}</span> 項為 <span class="math">${ap_val}</span>，第 <span class="math">${q6}</span> 項為 <span class="math">${aq_val}</span>。<br>
+                            請問此數列的第 <span class="math">${k6}</span> 項為何？<br><br>
+                            ${htmlOptions6}`;
+                        }
+                        
+                        hText = `1. 先求公差 <span class="math v-d">d</span>。<br>
+                        兩項之間的差，等於它們相差的「步數」乘上公差：<span class="math">a<span class="sub">${q6}</span> - a<span class="sub">${p6}</span> = (${q6} - ${p6})<span class="v-d">d</span></span>。<br>
+                        2. 算出公差 <span class="math v-d">d</span> 後，再從第 <span class="math">${q6}</span> 項出發，走到第 <span class="math">${k6}</span> 項。<br>
+                        需要再走 <span class="math">(${k6} - ${q6})</span> 步。即 <span class="math">a<span class="sub">${k6}</span> = a<span class="sub">${q6}</span> + (${k6} - ${q6})<span class="v-d">d</span></span>。`;
+                        
+                        aText = `步驟 1：求公差 <span class="math v-d">d</span><br>
+                        <span class="math">${q6}</span> 項與第 <span class="math">${p6}</span> 項相差了 <span class="math">(${q6} - ${p6}) = ${q6 - p6}</span> 個公差。<br>
+                        <span class="math">${q6 - p6}<span class="v-d">d</span> = ${aq_val} - (${ap_val}) = ${aq_val - ap_val}</span><br>
+                        <span class="math v-d">d</span> = <span class="math">${d6}</span><br>
+                        步驟 2：推算第 <span class="math">${k6}</span> 項<br>
+                        從第 <span class="math">${q6}</span> 項出發：<br>
+                        <span class="math">a<span class="sub">${k6}</span> = a<span class="sub">${q6}</span> + (${k6} - ${q6}) &times; <span class="v-d">d</span></span><br>
+                        <span class="math">= ${aq_val} + ${k6 - q6} &times; (${d6})</span><br>
+                        <span class="math">= ${aq_val} + (${(k6 - q6) * d6}) = ${ans6}</span><br>
+                        ➡ 正確選項為：<span class="v-ans">${correctLabel6}</span>`;
+                        break;
+                }
+
+                document.getElementById('mnemonicBox').innerHTML = mText;
+                document.getElementById('questionText').innerHTML = qText;
+                document.getElementById('hintBox').innerHTML = hText;
+                
+                document.getElementById('ansBox').setAttribute('data-ans', aText);
+                document.getElementById('ansBox').innerHTML = aText;
+                
+                document.getElementById('hintBox').style.display = 'none';
+                document.getElementById('ansBox').style.display = 'none';
+                document.getElementById('actionButtons').style.display = 'flex';
+                
+                // 防呆捲動
+                const contentArea = document.getElementById('contentArea');
+                if (contentArea) contentArea.scrollTop = 0;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // 啟動計時器
+                startTimer();
+
+            } catch (error) {
+                console.error("生成題目時發生錯誤:", error);
+                document.getElementById('questionText').innerHTML = `<span style="color:red;">系統載入異常，請重新點擊左側關卡。</span>`;
+            }
+        }
+
+        function showHint() { 
+            document.getElementById('hintBox').style.display = 'block'; 
+            scrollToBottom(); 
+        }
+        
+        function showAnswer() { 
+            const ansBox = document.getElementById('ansBox');
+            ansBox.innerHTML = ansBox.getAttribute('data-ans');
+            ansBox.style.display = 'block'; 
+            
+            stopTimer();
+            scrollToBottom(); 
+        }
+        
+        window.onload = () => { selectType(1, document.querySelector('.type-btn')); };
+    </script>
+</body>
+</html>

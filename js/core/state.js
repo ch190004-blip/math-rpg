@@ -1,4 +1,3 @@
-
 (function(app){
   app.state = {
     authReady: false,
@@ -7,11 +6,14 @@
     profile: { name: '旅人', email: '', level: 1, exp: 0, coins: 100 },
     sceneKey: 'LobbyScene',
     overlay: 'title',
+    modal: 'none',
     loadingText: '世界生成中…',
-    fieldReturnPoint: 'entry',
+    currentHint: '登入後進入世界',
+    currentTowerId: '7up',
+    currentChapterId: null,
+    currentTowerFloor: 1,
     defeatedSlimes: {},
     currentBattle: null,
-    currentHint: '登入後進入世界',
     input: {
       left: false,
       right: false,
@@ -32,6 +34,10 @@
       rewarded: false,
       currentQuestion: null,
       inputLocked: false
+    },
+    feedback: {
+      draft: null,
+      submitting: false
     }
   };
 

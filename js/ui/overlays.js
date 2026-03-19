@@ -272,12 +272,12 @@
                 <div class="big-logo">∑</div>
                 <div>
                   <div class="badge">單一網址・${state.build || window.__MATH_RPG_BUILD__ || 'beta'}</div>
-                  <h1 class="hero-title">Math RPG<br>六塔世界入口</h1>
+                  <h1 class="hero-title">Math RPG<br>六塔封測入口</h1>
                 </div>
               </div>
 
               <p class="hero-sub compact">
-                Google 登入後，從大廳原野出發，進入各學期之塔與章節原野。重新整理會回到入口，但登入會保留。
+                Google 登入後直接進入數學中心。重新整理會回到入口畫面，但登入狀態保留。
               </p>
 
               <div class="hero-preview compact">
@@ -287,7 +287,7 @@
                 </article>
                 <article class="preview-box">
                   <h4>這版更新</h4>
-                  <p>修正舊版快取干擾、首頁精簡、右上角選單、全場景 BUG / 回饋入口。</p>
+                  <p>修正快取跳舊版、六塔位置重排、七上之塔 3 層動線、右上選單與全場景回饋入口。</p>
                 </article>
                 <article class="preview-box">
                   <h4>目前規則</h4>
@@ -390,7 +390,7 @@
             </div>
 
             <div class="question-card">
-              ${q.prompt}
+              <div class="prompt-body">${q.prompt}</div>
               ${q.visual ? renderVisual(q) : ''}
             </div>
 

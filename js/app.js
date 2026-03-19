@@ -93,6 +93,7 @@
 
   app.runtime.enterChapter = function(chapterId){
     const chapter = world().getChapter(chapterId);
+    if (chapter) state.currentTowerFloor = Number(chapter.floor || 1);
     if (!chapter || !chapter.implemented) {
       app.ui.toast('此章節尚未上架', 'bad');
       return;
@@ -139,6 +140,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     try{
       const build = window.__MATH_RPG_BUILD__ || 'beta';
+      document.title = `Math RPG｜${build}`;
       const prevBuild = localStorage.getItem('mathRpgBuild');
       if (prevBuild !== build) {
         localStorage.setItem('mathRpgBuild', build);

@@ -1,8 +1,10 @@
 #overlay-root{
   display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
 }
 .overlay-screen{
   position:absolute;inset:0;
+  pointer-events:auto;
   display:flex;align-items:center;justify-content:center;
   padding:1rem;
   background:linear-gradient(180deg, rgba(7,17,26,.2), rgba(7,17,26,.7));
@@ -85,4 +87,15 @@
 @media (max-width: 900px){
   .title-panel{grid-template-columns:1fr}
   .hero-card{min-height:auto}
+}
+
+
+.battle-overlay{pointer-events:auto}
+.hero-sub.compact{max-width:52ch}
+.hero-preview.compact{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.2rem}
+.preview-box{padding:1rem;border-radius:22px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.22)}
+.preview-box h4{font-size:1.05rem;font-weight:900;margin-bottom:.45rem}
+.preview-box p{line-height:1.8}
+@media (max-width: 900px){
+  .hero-preview.compact{grid-template-columns:1fr}
 }

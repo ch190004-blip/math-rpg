@@ -79,46 +79,76 @@
       g.fillRoundedRect(10, 5, 90, 8, 5);
       g.generateTexture('lift-pad', 110, 28);
 
-      const banks = Object.keys(app.data)
-        .filter(key => app.data[key] && app.data[key].types && app.data[key].slimeCatalog);
-      banks.forEach((bankKey) => {
-        const bank = app.data[bankKey];
-        bank.types.forEach((meta) => {
-          ['standard', 'literacy'].forEach((mode) => {
-            const textureKey = bank.slimeCatalog.find(item => item.typeId === meta.id && item.mode === mode)?.textureKey;
-            if (!textureKey || this.textures.exists(textureKey)) return;
-            const color = Number('0x' + meta.color.replace('#', ''));
-            g.clear();
-            g.fillStyle(color, 1);
-            g.fillEllipse(46, 40, 60, 40);
-            g.fillStyle(0xffffff, 0.22);
-            g.fillEllipse(34, 30, 22, 10);
-            g.fillStyle(0xffffff, 0.12);
-            g.fillEllipse(52, 24, 26, 12);
-            g.fillStyle(0x111111, 1);
-            g.fillCircle(31, 39, 5);
-            g.fillCircle(58, 39, 5);
-            g.fillStyle(0xffffff, 1);
-            g.fillCircle(29, 36, 2);
-            g.fillCircle(56, 36, 2);
-            g.lineStyle(3, 0x111111, 1);
-            g.beginPath();
-            g.arc(45, 47, 10, 0.35, 2.79, false);
-            g.strokePath();
 
-            if (mode === 'literacy') {
-              g.fillStyle(0x7df0ff, 1);
-              g.fillTriangle(45, 3, 36, 18, 54, 18);
-              g.fillStyle(0xffffff, 0.9);
-              g.fillCircle(45, 10, 2);
-            }
+const banks = Object.keys(app.data)
+  .filter(key => app.data[key] && app.data[key].types && app.data[key].slimeCatalog);
 
-            g.generateTexture(textureKey, 92, 74);
-          });
-        });
-      });
+function drawMonsterTexture(textureKey, color, mode, species, mark){
+  if (this.textures.exists(textureKey)) return;
+  g.clear();
+  const c = Number('0x' + color.replace('#', ''));
+  if (species === 'shell') {
+    g.fillStyle(c, 1);
+    g.fillRoundedRect(12, 20, 68, 40, 16);
+    g.fillStyle(0xffffff, 0.24);
+    g.fillRoundedRect(18, 24, 56, 14, 12);
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(30, 36, 5);
+    g.fillCircle(58, 36, 5);
+    g.lineStyle(3, 0x111111, 1);
+    g.beginPath(); g.arc(44, 44, 12, 0.35, 2.79, false); g.strokePath();
+  } else if (species === 'spike') {
+    g.fillStyle(c, 1);
+    g.fillTriangle(46, 8, 10, 62, 82, 62);
+    g.fillStyle(0xffffff, 0.2);
+    g.fillTriangle(46, 14, 22, 48, 70, 48);
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(34, 42, 5);
+    g.fillCircle(58, 42, 5);
+    g.lineStyle(3, 0x111111, 1);
+    g.beginPath(); g.arc(46, 50, 10, 0.4, 2.74, false); g.strokePath();
+  } else {
+    g.fillStyle(c, 1);
+    g.fillEllipse(46, 40, 60, 40);
+    g.fillStyle(0xffffff, 0.22);
+    g.fillEllipse(34, 30, 22, 10);
+    g.fillStyle(0xffffff, 0.12);
+    g.fillEllipse(52, 24, 26, 12);
+    g.fillStyle(0x111111, 1);
+    g.fillCircle(31, 39, 5);
+    g.fillCircle(58, 39, 5);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(29, 36, 2);
+    g.fillCircle(56, 36, 2);
+    g.lineStyle(3, 0x111111, 1);
+    g.beginPath(); g.arc(45, 47, 10, 0.35, 2.79, false); g.strokePath();
+  }
 
-      g.destroy();
+  if (mark === 'stripe') {
+    g.fillStyle(0xffffff, 0.18);
+    g.fillRect(14, 32, 64, 8);
+  } else if (mark === 'dot') {
+    g.fillStyle(0xffffff, 0.18);
+    g.fillCircle(24, 26, 6); g.fillCircle(64, 28, 5); g.fillCircle(46, 20, 4);
+  }
+
+  if (mode === 'literacy') {
+    g.fillStyle(0x7df0ff, 1);
+    g.fillTriangle(46, 3, 36, 18, 54, 18);
+    g.fillStyle(0xffffff, 0.9);
+    g.fillCircle(46, 10, 2);
+  }
+  g.generateTexture(textureKey, 92, 74);
+}
+
+banks.forEach((bankKey) => {
+  const bank = app.data[bankKey];
+  (bank.slimeCatalog || []).forEach((monster) => {
+    drawMonsterTexture.call(this, monster.textureKey, monster.color, monster.mode, monster.species || 'slime', monster.mark || 'plain');
+  });
+});
+
+g.destroy();
     }
   };
 })(window.MathRPG);

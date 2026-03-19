@@ -92,6 +92,8 @@
       }).setOrigin(0.5).setDepth(5);
 
       this.player = this.physics.add.sprite(300, H - 210, 'player-top-active').setDepth(8);
+      const floorFromChapter = Number((this.chapterId.split('-')[1] || '1'));
+      state.currentTowerFloor = floorFromChapter;
       this.player.body.setSize(20, 30).setOffset(10, 38);
       this.player.setCollideWorldBounds(true);
       this.player.invulnUntil = 0;
@@ -112,7 +114,7 @@
       }).setOrigin(0.5).setDepth(5);
 
       this.legendChips = [];
-      const sampleTypes = (this.bank?.types || []).slice(0, 6);
+      const sampleTypes = (this.bank?.types || []).slice(0, 10);
       sampleTypes.forEach((meta, index) => {
         const x = 650 + index * 165;
         const y = H - 86;
@@ -120,7 +122,7 @@
         this.add.circle(x - 46, y, 16, colorNum, 0.95).setDepth(4);
         this.add.text(x, y, `題型 ${meta.id}`, {
           fontFamily:'Noto Sans TC',
-          fontSize:'16px',
+          fontSize:'15px',
           fontStyle:'900',
           color:'#254227',
           backgroundColor:'rgba(255,255,255,.52)',
@@ -146,8 +148,16 @@
         const sprite = this.physics.add.sprite(pos[0], pos[1], slime.textureKey).setDepth(4);
         sprite.setBounce(1, 1).setCollideWorldBounds(true);
         sprite.body.setCircle(22, 24, 18);
-        sprite.setScale(1);
+        sprite.setScale(1.05);
         sprite.slimeData = slime;
+        const label = this.add.text(pos[0], pos[1] - 54, `T${slime.typeId}`, {
+          fontFamily:'Press Start 2P',
+          fontSize:'12px',
+          color:'#10331e',
+          stroke:'#ffffff',
+          strokeThickness:4
+        }).setOrigin(0.5).setDepth(5);
+        sprite.labelText = label;
         sprite.wanderUntil = 0;
         sprite.roamHome = { x: pos[0], y: pos[1], radius: 110 + (index % 4) * 18 };
         this.slimeGroup.add(sprite);
@@ -187,6 +197,7 @@
     removeSlimeById(slimeId){
       const slime = this.slimeMeta[slimeId];
       if (!slime) return;
+      if (slime.labelText) slime.labelText.destroy();
       slime.disableBody(true, true);
       delete this.slimeMeta[slimeId];
     }
@@ -220,6 +231,10 @@
         if (!sprite.active) return;
         if (sprite.wanderUntil < this.time.now) this.setSlimeVelocity(sprite);
         this.keepSlimeInRoam(sprite);
+        if (sprite.labelText) {
+          sprite.labelText.setPosition(sprite.x, sprite.y - 54);
+          sprite.labelText.setAlpha(0.9);
+        }
         if (!nearby && this.time.now > (this.player.invulnUntil || 0) &&
             Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), sprite.getBounds())) {
           nearby = { type:'slime', sprite, label:`${sprite.slimeData.name}｜按 E 開戰` };

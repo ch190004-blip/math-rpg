@@ -1,3 +1,4 @@
+
 (function(app){
   const state = app.state;
   const world = () => app.data.world;
@@ -7,7 +8,7 @@
 
     init(data){
       this.towerId = data?.towerId || state.currentTowerId || '7up';
-      this.startFloor = data?.floor || state.currentTowerFloor || 1;
+      this.startFloor = Number(data?.floor || state.currentTowerFloor || 1);
     }
 
     create(){
@@ -15,163 +16,158 @@
       state.currentTowerId = this.towerId;
       state.currentChapterId = null;
       state.currentTowerFloor = this.startFloor;
-      state.currentHint = '左右移動，靠近左側下樓 / 右側上樓 / 中央章節門後按 E';
+      state.currentHint = '左下入口、左側樓梯區、右側章節門；靠近後按 E';
       app.ui.renderHUD();
 
-      this.chapters = world().getChapters(this.towerId);
       this.semester = world().getSemester(this.towerId);
+      this.floorGroups = world().getFloorGroups(this.towerId);
+      this.maxFloor = Math.max(...this.floorGroups.map(g => g.floor), 3);
 
-      this.floorSpacing = 260;
-      this.worldWidth = 2200;
-      this.worldHeight = this.chapters.length * this.floorSpacing + 260;
+      this.worldWidth = 1680;
+      this.floorSpacing = 270;
+      this.baseY = 1120;
+      this.worldHeight = this.baseY + 160;
 
-      this.cameras.main.setBackgroundColor('#d9f0ff');
+      this.cameras.main.setBackgroundColor('#f0f0ef');
       this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
       this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
-      this.add.rectangle(this.worldWidth / 2, this.worldHeight / 2, this.worldWidth, this.worldHeight, 0xf4e8c7).setDepth(-8);
-      this.add.rectangle(180, this.worldHeight / 2, 220, this.worldHeight, 0xd4ba8a).setDepth(-6);
-      this.add.rectangle(this.worldWidth - 180, this.worldHeight / 2, 220, this.worldHeight, 0xd4ba8a).setDepth(-6);
-      this.add.rectangle(this.worldWidth / 2, this.worldHeight / 2, 320, this.worldHeight, 0xf8efdb).setDepth(-7);
-
-      for (let i = 0; i < this.chapters.length; i++) {
-        const floor = i + 1;
-        const y = this.floorY(floor);
-        this.add.rectangle(this.worldWidth / 2, y + 34, this.worldWidth - 220, 180, 0xe8d7b1).setDepth(-4).setStrokeStyle(2, 0xeedfbf, 0.8);
-        this.add.rectangle(this.worldWidth / 2, y, this.worldWidth - 280, 22, 0x7f6339).setDepth(-2);
-        for (let j = 0; j < 7; j++) {
-          this.add.rectangle(320 + j * 250, y - 68, 120, 12, 0xc7ab7c, 0.42).setDepth(-3);
-        }
-      }
-
-      this.add.text(260, 74, this.semester.label, {
-        fontFamily:'Press Start 2P',
-        fontSize:'18px',
-        color:'#6a4928'
-      }).setDepth(5);
-
-      this.add.text(this.worldWidth - 280, 74, '每章一層樓', {
-        fontFamily:'Noto Sans TC',
-        fontSize:'20px',
-        fontStyle:'900',
-        color:'#6a4928'
-      }).setDepth(5);
-
+      this.drawTowerShell();
+      this.drawFloors();
       this.interactables = [];
-      this.chapters.forEach((chapter, index) => {
-        this.makeFloorDecor(chapter, index + 1, this.floorY(index + 1));
-      });
+      this.createFloorInteractions();
 
-      this.player = this.physics.add.sprite(420, this.floorY(this.startFloor) - 48, 'player-side-active').setDepth(8);
+      this.player = this.physics.add.sprite(160, this.floorY(this.startFloor) - 44, 'player-side-active').setDepth(12);
       this.player.body.setSize(20, 30).setOffset(10, 34);
       this.player.body.setAllowGravity(false);
       this.player.setCollideWorldBounds(true);
 
       this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
-      this.cameras.main.setDeadzone(160, 120);
-
+      this.cameras.main.setDeadzone(170, 120);
       this.keys = this.input.keyboard.addKeys('A,D,E,LEFT,RIGHT');
     }
 
     floorY(floor){
-      const bottomY = this.worldHeight - 120;
-      return bottomY - (floor - 1) * this.floorSpacing;
+      return this.baseY - (floor - 1) * this.floorSpacing;
     }
 
-    makeFloorDecor(chapter, floor, y){
-      const isImplemented = !!chapter.implemented;
+    drawTowerShell(){
+      const W = this.worldWidth;
+      const H = this.worldHeight;
+      this.add.rectangle(W/2, H/2, W, H, 0xf2f2f2).setDepth(-10);
+      this.add.rectangle(110, H/2, 12, H - 110, 0x111111).setDepth(-1);
+      this.add.rectangle(W - 110, H/2, 12, H - 110, 0x111111).setDepth(-1);
 
-      this.add.text(290, y - 106, `${floor}F`, {
-        fontFamily:'Press Start 2P',
-        fontSize:'18px',
-        color:'#6a4928'
-      }).setDepth(4);
+      this.add.text(160, 126, this.semester.label, {
+        fontFamily:'Noto Sans TC', fontSize:'34px', fontStyle:'900', color:'#222'
+      }).setDepth(5);
+      this.add.text(W - 180, 126, '傳送回入口', {
+        fontFamily:'Noto Sans TC', fontSize:'26px', fontStyle:'900', color:'#222'
+      }).setOrigin(0.5).setDepth(5);
 
-      this.add.text(this.worldWidth / 2, y - 118, chapter.label, {
-        fontFamily:'Noto Sans TC',
-        fontSize:'30px',
-        fontStyle:'900',
-        color:'#604123',
-        stroke:'#fff',
-        strokeThickness:6
-      }).setOrigin(0.5).setDepth(4);
+      // stairs beams
+      this.drawStair(1, 2);
+      this.drawStair(2, 3);
+    }
 
-      this.add.text(this.worldWidth / 2, y - 84, chapter.subtitle || '', {
-        fontFamily:'Noto Sans TC',
-        fontSize:'16px',
-        fontStyle:'900',
-        color:'#7f6542',
-        stroke:'#fff',
-        strokeThickness:4
-      }).setOrigin(0.5).setDepth(4);
+    drawStair(fromFloor, toFloor){
+      const y1 = this.floorY(fromFloor);
+      const y2 = this.floorY(toFloor);
+      const startX = 150;
+      const endX = 310;
+      const g = this.add.graphics().setDepth(0);
+      g.lineStyle(7, 0x111111, 1);
+      g.beginPath();
+      g.moveTo(startX, y1);
+      g.lineTo(endX, y2);
+      g.strokePath();
+      g.lineBetween(startX - 10, y1, startX + 30, y1);
+      g.lineBetween(endX - 25, y2, endX + 20, y2);
+    }
 
-      if (floor === 1) {
-        this.makePad(220, y - 20, '回大廳', '#b9e6ff', () => app.runtime.gotoScene('LobbyScene', { entry:'tower-exit' }));
-      } else {
-        this.makePad(280, y - 20, '下樓', '#9fe4ff', () => this.teleportToFloor(floor - 1));
-      }
+    drawFloors(){
+      const W = this.worldWidth;
+      this.floorGroups.forEach((group) => {
+        const y = this.floorY(group.floor);
+        this.add.line(0, 0, 360, y, W - 180, y, 0x111111).setLineWidth(7).setDepth(0);
+        this.add.text(1020, y - 78, `${group.items[0]?.id.split('-')[1]}-1~${group.items[group.items.length - 1]?.id.split('-')[1]}-${group.items[group.items.length - 1]?.id.split('-')[2]}`, {
+          fontFamily:'Noto Sans TC', fontSize:'26px', fontStyle:'900', color:'#202020'
+        }).setOrigin(0.5).setDepth(3);
 
-      if (floor < this.chapters.length) {
-        this.makePad(this.worldWidth - 280, y - 20, '上樓', '#ffe29a', () => this.teleportToFloor(floor + 1));
-      }
+        this.add.text(66, y - 42, group.floor === 1 ? '入口' : '', {
+          fontFamily:'Noto Sans TC', fontSize:'22px', fontStyle:'900', color:'#222'
+        }).setOrigin(0.5).setDepth(3);
 
-      this.makeDoor(this.worldWidth / 2, y - 26, chapter.label, isImplemented ? '進入章節' : '施工中', isImplemented ? '#f7d774' : '#d3d3d3', () => {
-        if (isImplemented) app.runtime.enterChapter(chapter.id);
-        else app.ui.toast(`${chapter.label} 尚在建置中`, 'bad');
+        const doorXs = group.items.length === 4 ? [850, 980, 1130, 1280] : [920, 1060, 1200];
+        group.items.forEach((chapter, index) => {
+          const x = doorXs[index] || (860 + index * 130);
+          this.add.rectangle(x, y - 34, 54, 110, 0xffffff).setDepth(2).setStrokeStyle(6, 0x111111);
+          const caption = chapter.label.split(' ')[0];
+          this.add.text(x, y - 98, caption, {
+            fontFamily:'Noto Sans TC', fontSize:'18px', fontStyle:'900', color:'#222'
+          }).setOrigin(0.5).setDepth(3);
+
+          const zone = this.add.zone(x, y - 10, 74, 130);
+          this.physics.add.existing(zone, true);
+          this.interactables.push({
+            zone,
+            label: chapter.label,
+            floor: group.floor,
+            onEnter: () => {
+              if (chapter.implemented) app.runtime.enterChapter(chapter.id);
+              else app.ui.toast(`${chapter.label} 尚未上架`, 'bad');
+            }
+          });
+        });
+      });
+
+      // return portal on 3F right
+      const topY = this.floorY(this.maxFloor);
+      this.add.rectangle(this.worldWidth - 180, topY - 34, 70, 116, 0xeaf6ff).setDepth(2).setStrokeStyle(6, 0x111111);
+      const portalZone = this.add.zone(this.worldWidth - 180, topY - 10, 86, 132);
+      this.physics.add.existing(portalZone, true);
+      this.interactables.push({
+        zone: portalZone,
+        label: '傳送回入口',
+        floor: this.maxFloor,
+        onEnter: () => app.runtime.gotoScene('LobbyScene', { entry:'tower-exit' })
       });
     }
 
-    makePad(x, y, label, color, onEnter){
-      const colorNum = Number('0x' + color.replace('#', ''));
-      const glow = this.add.rectangle(x, y + 28, 128, 24, colorNum, 0.32).setStrokeStyle(2, 0xffffff, 0.7).setDepth(2);
-      const plate = this.add.image(x, y, 'lift-pad').setDepth(3);
-      plate.setTint(colorNum);
-      const text = this.add.text(x, y - 42, label, {
-        fontFamily:'Noto Sans TC',
-        fontSize:'18px',
-        fontStyle:'900',
-        color:'#5a3815',
-        stroke:'#fff',
-        strokeThickness:5
-      }).setOrigin(0.5).setDepth(4);
-      const zone = this.add.zone(x, y, 120, 84);
-      this.physics.add.existing(zone, true);
-      this.interactables.push({ zone, label, onEnter, floorBound:true });
-      this.tweens.add({ targets:[glow, plate], alpha:{ from:.78, to:1 }, duration:1100, yoyo:true, repeat:-1 });
+    createFloorInteractions(){
+      // 1F प्रवेश/回大廳
+      const y1 = this.floorY(1);
+      const entryZone = this.add.zone(160, y1 - 14, 86, 126);
+      this.physics.add.existing(entryZone, true);
+      this.interactables.push({
+        zone: entryZone, label:'回數學中心', floor:1,
+        onEnter: () => app.runtime.gotoScene('LobbyScene', { entry:'tower-exit' })
+      });
+
+      // stairs separate on 2F
+      this.makeStairPad(220, this.floorY(2) - 14, 2, '下樓至 1F', () => this.teleportToFloor(1));
+      this.makeStairPad(430, this.floorY(2) - 14, 2, '上樓至 3F', () => this.teleportToFloor(3));
+      this.makeStairPad(220, this.floorY(3) - 14, 3, '下樓至 2F', () => this.teleportToFloor(2));
+      this.makeStairPad(220, this.floorY(1) - 14, 1, '上樓至 2F', () => this.teleportToFloor(2));
     }
 
-    makeDoor(x, y, label, chipText, chipColor, onEnter){
-      const chipNum = Number('0x' + chipColor.replace('#', ''));
-      const door = this.add.image(x, y, 'chapter-door').setScale(0.92).setDepth(3);
-      door.setTint(chipNum);
-      const labelBg = this.add.rectangle(x, y - 78, 340, 32, 0xffffff, 0.46).setStrokeStyle(2, chipNum, 0.4).setDepth(3.5);
-      this.add.text(x, y - 78, label, {
-        fontFamily:'Noto Sans TC',
-        fontSize:'20px',
-        fontStyle:'900',
-        color:'#5f3b17'
-      }).setOrigin(0.5).setDepth(4);
-      this.add.text(x, y + 72, chipText, {
-        fontFamily:'Noto Sans TC',
-        fontSize:'16px',
-        fontStyle:'900',
-        color:'#5f3b17',
-        backgroundColor:'rgba(255,255,255,.7)',
-        padding:{ x:12, y:5 }
-      }).setOrigin(0.5).setDepth(4);
-      const zone = this.add.zone(x, y + 8, 110, 126);
+    makeStairPad(x, y, floor, label, onEnter){
+      const g = this.add.graphics().setDepth(2);
+      g.fillStyle(0xefefef, 1);
+      g.lineStyle(6, 0x111111, 1);
+      g.fillRect(x - 28, y - 50, 56, 88);
+      g.strokeRect(x - 28, y - 50, 56, 88);
+      const zone = this.add.zone(x, y - 8, 74, 120);
       this.physics.add.existing(zone, true);
-      this.interactables.push({ zone, label, onEnter });
-      this.tweens.add({ targets:door, y:y - 4, duration:1600, yoyo:true, repeat:-1, ease:'Sine.easeInOut' });
+      this.interactables.push({ zone, label, floor, onEnter });
     }
 
     teleportToFloor(floor){
-      const from = state.currentTowerFloor;
+      const targetX = floor === 1 ? 220 : 260;
       state.currentTowerFloor = floor;
-      const x = floor > from ? 380 : this.worldWidth - 380;
-      this.player.setPosition(x, this.floorY(floor) - 48);
+      this.player.setPosition(targetX, this.floorY(floor) - 44);
       this.player.setVelocity(0, 0);
-      this.cameras.main.flash(120, 255, 255, 255, false);
+      this.cameras.main.flash(100, 255, 255, 255, false);
       app.ui.renderHUD();
     }
 
@@ -190,25 +186,23 @@
 
       const left = this.keys.LEFT.isDown || this.keys.A.isDown || state.input.left;
       const right = this.keys.RIGHT.isDown || this.keys.D.isDown || state.input.right;
-      const speed = 180 * app.config.game.speedMultiplier;
+      const speed = 188 * app.config.game.speedMultiplier;
       if (left) this.player.setVelocityX(-speed);
       else if (right) this.player.setVelocityX(speed);
       else this.player.setVelocityX(0);
 
       this.player.setVelocityY(0);
-      this.player.y = this.floorY(state.currentTowerFloor) - 48;
+      this.player.y = this.floorY(state.currentTowerFloor) - 44;
 
       let nearby = null;
       this.interactables.forEach((item) => {
-        if (Math.abs(item.zone.y - this.player.y) < 90 &&
-            Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), item.zone.getBounds())) {
-          nearby = item;
-        }
+        if (item.floor !== state.currentTowerFloor) return;
+        if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), item.zone.getBounds())) nearby = item;
       });
 
-      const defaultHint = '左右移動，靠近左側下樓 / 右側上樓 / 中央章節門後按 E';
+      const defaultHint = '左下入口、左側樓梯區、右側章節門；靠近後按 E';
       if (nearby) {
-        state.currentHint = `${nearby.label}｜按 E 互動`;
+        state.currentHint = `${nearby.label}｜按 E`;
         app.ui.renderHUD();
         if (this.consumeInteract()) nearby.onEnter();
       } else if (state.currentHint !== defaultHint) {

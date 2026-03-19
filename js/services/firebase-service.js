@@ -34,9 +34,9 @@
 
     getLocalProfile(){
       const raw = localStorage.getItem('mathRpgLocalProfile');
-      if (!raw) return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100 };
+      if (!raw) return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100, avatarSkin: Object.assign({}, state.avatar) };
       try { return JSON.parse(raw); }
-      catch (_) { return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100 }; }
+      catch (_) { return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100, avatarSkin: Object.assign({}, state.avatar) }; }
     },
 
     saveLocalProfile(profile){
@@ -105,6 +105,7 @@
         const profile = Object.assign({}, defaultProfile, snap.data() || {});
         state.avatar = Object.assign({}, state.avatar, profile.avatarSkin || {});
         profile.level = app.utils.levelFromExp(profile.exp || 0);
+        await ref.set({ level: profile.level, avatarSkin: Object.assign({}, state.avatar, profile.avatarSkin || {}) }, { merge: true });
         return profile;
       }catch(error){
         console.warn('ensureUserProfile fallback local', error);
@@ -126,6 +127,7 @@
             email: state.user.email || '',
             coins: firebase.firestore.FieldValue.increment(Number(coins || 0)),
             exp: firebase.firestore.FieldValue.increment(Number(exp || 0)),
+            level: profile.level,
             avatarSkin: Object.assign({}, state.avatar)
           }, { merge: true });
         }catch(error){

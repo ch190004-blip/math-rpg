@@ -3,16 +3,16 @@
   const U = app.utils;
 
   const TYPE_META = [
-    { id: 1, title: '題型一｜相反意義的量(一)', slug: '基準差值', color: '#6ddf8f' },
-    { id: 2, title: '題型二｜相反意義的量(二)', slug: '增減表徵', color: '#57d0ff' },
-    { id: 3, title: '題型三｜數線坐標與距離', slug: '距離判讀', color: '#8d8cff' },
-    { id: 4, title: '題型四｜數線與等分點', slug: '等分分點', color: '#ffcf63' },
-    { id: 5, title: '題型五｜數的大小比較(一)', slug: '整數小數比較', color: '#ff8ca7' },
-    { id: 6, title: '題型六｜數的大小比較(二)', slug: '負分數比較', color: '#66ddb6' },
-    { id: 7, title: '題型七｜相反數解碼', slug: '相反數', color: '#9be15b' },
-    { id: 8, title: '題型八｜絕對值運算範圍', slug: '整數解範圍', color: '#ffa86a' },
-    { id: 9, title: '題型九｜圖解絕對值距離', slug: '圖解判斷', color: '#c98bff' },
-    { id: 10, title: '題型十｜綜合挑戰', slug: '絕對值綜合', color: '#70e1d7' }
+    { id: 1, title: '題型一｜相反意義的量(一)', slug: '基準差值', color: '#30d158' },
+    { id: 2, title: '題型二｜相反意義的量(二)', slug: '增減表徵', color: '#00c2ff' },
+    { id: 3, title: '題型三｜數線坐標與距離', slug: '距離判讀', color: '#5856d6' },
+    { id: 4, title: '題型四｜數線與等分點', slug: '等分分點', color: '#ffcc00' },
+    { id: 5, title: '題型五｜數的大小比較(一)', slug: '整數小數比較', color: '#ff2d55' },
+    { id: 6, title: '題型六｜數的大小比較(二)', slug: '負分數比較', color: '#00c7be' },
+    { id: 7, title: '題型七｜相反數解碼', slug: '相反數', color: '#9be000' },
+    { id: 8, title: '題型八｜絕對值運算範圍', slug: '整數解範圍', color: '#ff9500' },
+    { id: 9, title: '題型九｜圖解絕對值距離', slug: '圖解判斷', color: '#af52de' },
+    { id: 10, title: '題型十｜綜合挑戰', slug: '絕對值綜合', color: '#64d2ff' }
   ];
 
   const TYPE_NAMES = {
@@ -420,9 +420,13 @@
 
   function createSlimeCatalog(){
     const list = [];
+    const speciesCycle = ['slime', 'shell', 'spike'];
+    const markCycle = ['plain', 'stripe', 'dot'];
     TYPE_META.forEach((meta) => {
       ['standard', 'literacy'].forEach((mode, idx) => {
         const names = TYPE_NAMES[meta.id];
+        const species = speciesCycle[(meta.id - 1) % speciesCycle.length];
+        const mark = markCycle[(meta.id - 1) % markCycle.length];
         list.push({
           id: `11_t${meta.id}_${mode}`,
           typeId: meta.id,
@@ -432,6 +436,8 @@
           modeLabel: AURAS[mode],
           aura: `${meta.slug}｜${AURAS[mode]}`,
           feature: mode === 'literacy' ? 'crystal' : 'plain',
+          species,
+          mark,
           textureKey: `slime-t${meta.id}-${mode}`
         });
       });

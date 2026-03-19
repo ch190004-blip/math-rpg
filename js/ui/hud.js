@@ -134,7 +134,7 @@
     if (state.sceneKey === 'LobbyScene') return '大廳原野｜六塔大世界';
     if (state.sceneKey === 'TowerScene') {
       const semester = world().getSemester(state.currentTowerId);
-      return `${semester.label}｜每章一層樓`;
+      return `${semester.label}｜3 層章節塔`;
     }
     if (state.sceneKey === 'FieldScene') {
       const chapter = world().getChapter(state.currentChapterId);

@@ -38,7 +38,9 @@
     feedback: {
       draft: null,
       submitting: false
-    }
+    },
+    uiMenuOpen: false,
+    build: window.__MATH_RPG_BUILD__ || 'beta'
   };
 
   app.config.game = {

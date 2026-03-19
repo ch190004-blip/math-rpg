@@ -256,7 +256,12 @@
     const root = document.getElementById('overlay-root');
     const authCopy = !state.authReady
       ? '<span class="loading-pulse"></span>'
-      : (state.user ? '已維持登入，可直接進入封測世界' : '請先用 Google 登入');
+      : (state.user ? '已維持登入，可直接繼續冒險。' : '請先用 Google 登入。');
+
+    const profileLine = state.user
+      ? `<div class="status-item"><span>勇者</span><strong>${state.profile?.name || state.user.displayName || '旅人'}</strong></div>
+         <div class="status-item"><span>進度</span><strong>Lv.${state.profile?.level || 1} ・ ${state.profile?.coins || 0} G</strong></div>`
+      : `<div class="status-item"><span>登入狀態</span><strong>尚未登入</strong></div>`;
 
     root.innerHTML = `
       <div class="overlay-screen">
@@ -266,31 +271,31 @@
               <div class="brand-row">
                 <div class="big-logo">∑</div>
                 <div>
-                  <div class="badge">單一網址・封測準備版</div>
-                  <h1 class="hero-title">Math RPG<br>六塔大世界</h1>
+                  <div class="badge">單一網址・${state.build || window.__MATH_RPG_BUILD__ || 'beta'}</div>
+                  <h1 class="hero-title">Math RPG<br>六塔世界入口</h1>
                 </div>
               </div>
-              <p class="hero-sub">
-                Google 登入後，從明亮的大廳原野出發，依序進入七上、七下、八上、八下、九上、九下之塔。
-                每章一層樓，原野內把不同題型史萊姆混在同一區，方便老師與學生直接選題測試。
-                重新整理會回到入口，但登入狀態會保留。
+
+              <p class="hero-sub compact">
+                Google 登入後，從大廳原野出發，進入各學期之塔與章節原野。重新整理會回到入口，但登入會保留。
               </p>
-              <div class="hero-preview">
+
+              <div class="hero-preview compact">
                 <article class="preview-box">
-                  <h4>大廳原野</h4>
-                  <p>六座塔入口縮成清楚的小門口，直接撞到門後按 E 就能進入。</p>
+                  <h4>目前上架</h4>
+                  <p>七上 1-1 負數與數線<br>七下 1-1 二元一次方程式<br>八下 1-1 等差數列</p>
                 </article>
                 <article class="preview-box">
-                  <h4>學期之塔</h4>
-                  <p>每章一層樓，左側下樓、右側上樓、中央進章節，不再需要跳躍解謎。</p>
+                  <h4>這版更新</h4>
+                  <p>修正舊版快取干擾、首頁精簡、右上角選單、全場景 BUG / 回饋入口。</p>
                 </article>
                 <article class="preview-box">
-                  <h4>章節原野</h4>
-                  <p>同題型同色、晶角代表素養題；不同題型混區活動，答對就拿金幣與 EXP。</p>
+                  <h4>目前規則</h4>
+                  <p>固定單一 index.html<br>塔內每章一層樓<br>戰鬥答對領金幣後回原野</p>
                 </article>
               </div>
             </div>
-            <div class="tiny">目前正式上架：七上 1-1、七下 1-1、八下 1-1。所有場景右下角都能直接送 BUG / 回饋。</div>
+            <div class="tiny">封測提醒：若你曾以桌面捷徑開過舊版，這版已加入版本標記與快取清理，但建議改從新資料夾重新開啟。</div>
           </section>
 
           <aside class="menu-card soft-card">
@@ -306,27 +311,24 @@
             </div>
 
             <div class="menu-block">
-              <div class="menu-title">目前上架內容</div>
+              <div class="menu-title">版本更新</div>
               <div class="status-list">
-                <div class="status-item"><span>七上</span><strong>1-1 負數與數線</strong></div>
-                <div class="status-item"><span>七下</span><strong>1-1 二元一次方程式</strong></div>
-                <div class="status-item"><span>八下</span><strong>1-1 等差數列</strong></div>
-                <div class="status-item"><span>塔樓動線</span><strong>每章一層 / 上下樓分開</strong></div>
-                <div class="status-item"><span>章節原野</span><strong>混區多題型史萊姆</strong></div>
+                <div class="status-item"><span>Build</span><strong>${state.build || window.__MATH_RPG_BUILD__ || 'beta'}</strong></div>
+                <div class="status-item"><span>首頁</span><strong>改回分頁式精簡入口</strong></div>
+                <div class="status-item"><span>右上角</span><strong>選單含回首頁 / 登出 / 回饋</strong></div>
+                <div class="status-item"><span>快取</span><strong>加上版本保護與清理</strong></div>
+                ${profileLine}
               </div>
             </div>
           </aside>
         </div>
-        <button class="feedback-fab" id="title-feedback-btn">BUG / 回饋</button>
       </div>
     `;
 
     const loginBtn = document.getElementById('login-btn');
     const enterBtn = document.getElementById('enter-world-btn');
     const offlineBtn = document.getElementById('offline-btn');
-    const feedbackBtn = document.getElementById('title-feedback-btn');
 
-    if (feedbackBtn) feedbackBtn.onclick = () => app.ui.openFeedback();
     if (loginBtn) loginBtn.onclick = () => app.services.firebase.signIn();
     if (enterBtn) enterBtn.onclick = () => app.runtime.enterWorld();
     if (offlineBtn) offlineBtn.onclick = () => {
@@ -337,6 +339,7 @@
       app.runtime.enterWorld();
     };
   }
+
 
   function renderBattle(){
     const battle = state.currentBattle;

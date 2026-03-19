@@ -56,6 +56,7 @@
     state.sceneKey = sceneKey;
     state.overlay = 'none';
     state.modal = 'none';
+    state.uiMenuOpen = false;
     forceStartScene(sceneKey, data);
     app.ui.renderAll();
   };
@@ -63,6 +64,7 @@
   app.runtime.enterWorld = function(){
     state.overlay = 'none';
     state.modal = 'none';
+    state.uiMenuOpen = false;
     state.currentHint = '方向鍵 / WASD 移動，靠近塔門後按 E 進入';
     forceStartScene('LobbyScene', { fresh:true });
     app.ui.renderAll();
@@ -71,6 +73,7 @@
   app.runtime.returnToTitle = function(){
     state.overlay = 'title';
     state.modal = 'none';
+    state.uiMenuOpen = false;
     state.currentChapterId = null;
     state.currentHint = '登入後進入世界';
     forceStartScene('LobbyScene', { idle:true });
@@ -83,6 +86,7 @@
     state.currentChapterId = null;
     state.overlay = 'none';
     state.modal = 'none';
+    state.uiMenuOpen = false;
     forceStartScene('TowerScene', { towerId, floor: floor || 1 });
     app.ui.renderAll();
   };
@@ -96,6 +100,7 @@
     state.currentChapterId = chapterId;
     state.overlay = 'none';
     state.modal = 'none';
+    state.uiMenuOpen = false;
     forceStartScene('FieldScene', { chapterId });
     app.ui.renderAll();
   };
@@ -132,6 +137,23 @@
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
+    try{
+      const build = window.__MATH_RPG_BUILD__ || 'beta';
+      const prevBuild = localStorage.getItem('mathRpgBuild');
+      if (prevBuild !== build) {
+        localStorage.setItem('mathRpgBuild', build);
+        sessionStorage.removeItem('mathRpgLastRoute');
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
+      }
+      if ('caches' in window) {
+        caches.keys().then((keys) => Promise.all(keys
+          .filter((key) => /math|rpg|phaser/i.test(key))
+          .map((key) => caches.delete(key))
+        )).catch(() => {});
+      }
+    }catch(_){}
     createGame();
     app.ui.renderAll();
     await app.services.firebase.init();

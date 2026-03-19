@@ -3,8 +3,7 @@
   const world = () => app.data.world;
 
   function defaultDraft(){
-    const semesterId = state.currentChapterId ? state.currentChapterId.split('-').slice(0, 2).join('') : (state.currentTowerId || '7up');
-    const normalizedSemester = world().semesters.find(item => item.id === state.currentTowerId)?.id || '7up';
+    const normalizedSemester = state.currentTowerId || '7up';
     const chapterId = state.currentChapterId || world().getChapters(normalizedSemester)[0]?.id || '7up-1-1';
     return {
       kind: 'bug',

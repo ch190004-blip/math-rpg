@@ -2,7 +2,7 @@
   position:absolute;inset:0;z-index:50;pointer-events:none;
 }
 .feedback-fab{
-  position:absolute;right:1rem;bottom:1rem;z-index:55;
+  position:absolute;left:1rem;bottom:1rem;z-index:55;
   pointer-events:auto;
   border:none;border-radius:999px;padding:.8rem 1rem;
   background:linear-gradient(180deg,#fff2b6,#ffd55d);color:#5e3c00;font-weight:900;
@@ -36,5 +36,5 @@
 .feedback-note{font-size:.86rem;line-height:1.8;color:#cffff0;opacity:.86;margin-top:1rem}
 @media (max-width: 760px){
   .feedback-grid{grid-template-columns:1fr}
-  .feedback-fab{right:.8rem;bottom:calc(.8rem + env(safe-area-inset-bottom))}
+  .feedback-fab{left:.8rem;bottom:calc(.8rem + env(safe-area-inset-bottom))}
 }

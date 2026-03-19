@@ -1,6 +1,20 @@
+
 (function(app){
   const state = app.state;
   const utils = app.utils;
+
+  function defaultProfile(name='勇者'){
+    return {
+      name,
+      email: '',
+      level: 1,
+      exp: 0,
+      coins: 100,
+      inventory: [],
+      customNameSet: false,
+      avatarSkin: Object.assign({}, state.avatar)
+    };
+  }
 
   const service = {
     app: null,
@@ -18,10 +32,15 @@
         await this.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         this.auth.onAuthStateChanged(async (user) => {
           state.user = user || null;
-          if (user) state.profile = await this.ensureUserProfile(user);
-          else state.profile = { name: '旅人', email: '', level: 1, exp: 0, coins: 100 };
+          if (user) {
+            state.profile = await this.ensureUserProfile(user);
+            await this.flushLocalFeedbackQueue();
+          } else {
+            state.profile = this.getLocalProfile();
+          }
           state.authReady = true;
           app.ui.renderAll();
+          app.ui.maybePromptProfileName();
         });
       }catch(error){
         console.warn('Firebase unavailable, fallback to local profile.', error);
@@ -34,9 +53,12 @@
 
     getLocalProfile(){
       const raw = localStorage.getItem('mathRpgLocalProfile');
-      if (!raw) return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100, avatarSkin: Object.assign({}, state.avatar) };
-      try { return JSON.parse(raw); }
-      catch (_) { return { name: '離線旅人', email: '', level: 1, exp: 0, coins: 100, avatarSkin: Object.assign({}, state.avatar) }; }
+      if (!raw) return defaultProfile('離線旅人');
+      try {
+        return Object.assign(defaultProfile('離線旅人'), JSON.parse(raw));
+      } catch (_) {
+        return defaultProfile('離線旅人');
+      }
     },
 
     saveLocalProfile(profile){
@@ -77,6 +99,7 @@
     },
 
     async signOut(){
+      state.uiMenuOpen = false;
       if (this.auth && state.firebaseReady) await this.auth.signOut();
       else {
         state.user = null;
@@ -86,26 +109,28 @@
     },
 
     async ensureUserProfile(user){
-      const defaultProfile = {
-        name: user.displayName || '勇者',
-        email: user.email || '',
-        level: 1,
-        exp: 0,
-        coins: 100,
-        inventory: [],
-        avatarSkin: Object.assign({}, state.avatar)
-      };
+      const defaultName = utils.sanitizeName(user.displayName || user.email?.split('@')[0] || '勇者') || '勇者';
+      const defaults = defaultProfile(defaultName);
+      defaults.email = user.email || '';
       try{
         const ref = this.db.collection('users').doc(user.uid);
         const snap = await ref.get();
+        let profile = defaults;
         if (!snap.exists) {
-          await ref.set(defaultProfile);
-          return defaultProfile;
+          await ref.set(defaults, { merge: true });
+        } else {
+          profile = Object.assign({}, defaults, snap.data() || {});
         }
-        const profile = Object.assign({}, defaultProfile, snap.data() || {});
-        state.avatar = Object.assign({}, state.avatar, profile.avatarSkin || {});
         profile.level = app.utils.levelFromExp(profile.exp || 0);
-        await ref.set({ level: profile.level, avatarSkin: Object.assign({}, state.avatar, profile.avatarSkin || {}) }, { merge: true });
+        profile.avatarSkin = Object.assign({}, state.avatar, profile.avatarSkin || {});
+        state.avatar = Object.assign({}, state.avatar, profile.avatarSkin || {});
+        await ref.set({
+          email: user.email || '',
+          name: profile.name || defaultName,
+          level: profile.level,
+          customNameSet: !!profile.customNameSet,
+          avatarSkin: profile.avatarSkin
+        }, { merge: true });
         return profile;
       }catch(error){
         console.warn('ensureUserProfile fallback local', error);
@@ -113,32 +138,61 @@
       }
     },
 
+    async updateProfileName(name){
+      const safeName = utils.sanitizeName(name);
+      if (!safeName) throw new Error('名稱不可空白');
+      const next = Object.assign({}, state.profile || defaultProfile(), { name: safeName, customNameSet: true });
+      state.profile = next;
+      if (state.user && state.firebaseReady && this.db && state.user.uid !== 'offline-user') {
+        const ref = this.db.collection('users').doc(state.user.uid);
+        await ref.set({ name: safeName, customNameSet: true }, { merge: true });
+      } else {
+        this.saveLocalProfile(next);
+      }
+      app.ui.renderHUD();
+      return next;
+    },
+
     async addReward(coins, exp){
-      const profile = state.profile || { name: '旅人', coins: 0, exp: 0, level: 1 };
-      profile.coins = Number(profile.coins || 0) + Number(coins || 0);
-      profile.exp = Number(profile.exp || 0) + Number(exp || 0);
-      profile.level = app.utils.levelFromExp(profile.exp);
+      const addCoins = Number(coins || 0);
+      const addExp = Number(exp || 0);
 
       if (state.user && state.firebaseReady && this.db && state.user.uid !== 'offline-user') {
         try{
           const ref = this.db.collection('users').doc(state.user.uid);
-          await ref.set({
-            name: state.user.displayName || profile.name || '勇者',
-            email: state.user.email || '',
-            coins: firebase.firestore.FieldValue.increment(Number(coins || 0)),
-            exp: firebase.firestore.FieldValue.increment(Number(exp || 0)),
-            level: profile.level,
-            avatarSkin: Object.assign({}, state.avatar)
-          }, { merge: true });
+          const result = await this.db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref);
+            const current = Object.assign({}, defaultProfile(state.profile?.name || '勇者'), snap.exists ? snap.data() : {});
+            const nextCoins = Number(current.coins || 0) + addCoins;
+            const nextExp = Number(current.exp || 0) + addExp;
+            const nextLevel = app.utils.levelFromExp(nextExp);
+            const nextProfile = Object.assign({}, current, {
+              name: state.profile?.name || current.name || '勇者',
+              email: state.user?.email || current.email || '',
+              coins: nextCoins,
+              exp: nextExp,
+              level: nextLevel,
+              customNameSet: !!current.customNameSet,
+              avatarSkin: Object.assign({}, state.avatar)
+            });
+            tx.set(ref, nextProfile, { merge: true });
+            return nextProfile;
+          });
+          state.profile = result;
+          app.ui.renderHUD();
+          return result;
         }catch(error){
           console.warn('reward sync fallback local', error);
-          this.saveLocalProfile(profile);
         }
-      } else {
-        this.saveLocalProfile(profile);
       }
 
-      state.profile = Object.assign({}, profile);
+      const profile = Object.assign({}, state.profile || defaultProfile('旅人'));
+      profile.coins = Number(profile.coins || 0) + addCoins;
+      profile.exp = Number(profile.exp || 0) + addExp;
+      profile.level = app.utils.levelFromExp(profile.exp);
+      profile.avatarSkin = Object.assign({}, state.avatar);
+      state.profile = profile;
+      this.saveLocalProfile(profile);
       app.ui.renderHUD();
       return state.profile;
     },
@@ -146,9 +200,10 @@
     async submitFeedback(payload){
       const base = {
         uid: state.user?.uid || 'offline-user',
-        userName: state.user?.displayName || state.profile?.name || '旅人',
+        userName: state.profile?.name || state.user?.displayName || '旅人',
         userEmail: state.user?.email || state.profile?.email || '',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        build: state.build
       };
       const doc = Object.assign({}, base, payload || {});
       if (state.user && state.firebaseReady && this.db && state.user.uid !== 'offline-user') {
@@ -170,6 +225,25 @@
         this.saveLocalFeedbackQueue(queue);
         return true;
       }
+    },
+
+    async flushLocalFeedbackQueue(){
+      if (!state.user || !state.firebaseReady || !this.db || state.user.uid === 'offline-user') return;
+      const queue = this.getLocalFeedbackQueue();
+      if (!queue.length) return;
+      const remain = [];
+      for (const item of queue) {
+        try{
+          await this.db.collection('feedback').add({
+            ...item,
+            syncedFromLocal: true,
+            serverTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }catch(error){
+          remain.push(item);
+        }
+      }
+      this.saveLocalFeedbackQueue(remain);
     }
   };
 

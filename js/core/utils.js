@@ -158,6 +158,10 @@
     uid(prefix='id'){
       return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
     },
+    sanitizeName(value){
+      const raw = String(value || '').replace(/\s+/g, ' ').trim();
+      return raw.replace(/[<>]/g, '').slice(0, 12);
+    },
     expToLevel(level){
       return level * 100;
     },

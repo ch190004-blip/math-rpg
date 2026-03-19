@@ -1,3 +1,4 @@
+
 (function(app){
   const state = app.state;
   const world = () => app.data.world;
@@ -46,28 +47,37 @@
   }
 
   function forceStartScene(sceneKey, data){
+    const manager = app.runtime.game.scene;
     ['LobbyScene', 'TowerScene', 'FieldScene'].forEach((key) => {
-      if (key !== sceneKey && app.runtime.game.scene.isActive(key)) app.runtime.game.scene.stop(key);
+      if (key !== sceneKey && manager.isActive(key)) manager.stop(key);
     });
-    app.runtime.game.scene.start(sceneKey, data || {});
+    manager.start(sceneKey, data || {});
   }
 
-  app.runtime.gotoScene = function(sceneKey, data){
+  function queueScene(sceneKey, data){
+    if (!app.runtime.game || state.transitioning) return;
+    state.transitioning = true;
     state.sceneKey = sceneKey;
     state.overlay = 'none';
     state.modal = 'none';
     state.uiMenuOpen = false;
-    forceStartScene(sceneKey, data);
-    app.ui.renderAll();
+    window.setTimeout(() => {
+      try{
+        forceStartScene(sceneKey, data || {});
+      } finally {
+        state.transitioning = false;
+        app.ui.renderAll();
+      }
+    }, 16);
+  }
+
+  app.runtime.gotoScene = function(sceneKey, data){
+    queueScene(sceneKey, data);
   };
 
   app.runtime.enterWorld = function(){
-    state.overlay = 'none';
-    state.modal = 'none';
-    state.uiMenuOpen = false;
-    state.currentHint = '方向鍵 / WASD 移動，靠近塔門後按 E 進入';
-    forceStartScene('LobbyScene', { fresh:true });
-    app.ui.renderAll();
+    state.currentHint = 'WASD / 方向鍵移動，靠近塔門後按 E 進入';
+    queueScene('LobbyScene', { fresh:true });
   };
 
   app.runtime.returnToTitle = function(){
@@ -76,7 +86,11 @@
     state.uiMenuOpen = false;
     state.currentChapterId = null;
     state.currentHint = '登入後進入世界';
-    forceStartScene('LobbyScene', { idle:true });
+    if (app.runtime.game?.scene?.isActive('FieldScene')) app.runtime.game.scene.stop('FieldScene');
+    if (app.runtime.game?.scene?.isActive('TowerScene')) app.runtime.game.scene.stop('TowerScene');
+    if (!app.runtime.game?.scene?.isActive('LobbyScene')) {
+      forceStartScene('LobbyScene', { idle:true });
+    }
     app.ui.renderAll();
   };
 
@@ -84,11 +98,7 @@
     state.currentTowerId = towerId;
     state.currentTowerFloor = floor || 1;
     state.currentChapterId = null;
-    state.overlay = 'none';
-    state.modal = 'none';
-    state.uiMenuOpen = false;
-    forceStartScene('TowerScene', { towerId, floor: floor || 1 });
-    app.ui.renderAll();
+    queueScene('TowerScene', { towerId, floor: floor || 1 });
   };
 
   app.runtime.enterChapter = function(chapterId){
@@ -99,11 +109,7 @@
       return;
     }
     state.currentChapterId = chapterId;
-    state.overlay = 'none';
-    state.modal = 'none';
-    state.uiMenuOpen = false;
-    forceStartScene('FieldScene', { chapterId });
-    app.ui.renderAll();
+    queueScene('FieldScene', { chapterId });
   };
 
   app.runtime.openBattle = function(context){
@@ -133,8 +139,31 @@
     resumeAfterOverlay();
   };
 
+  app.runtime.askInstall = async function(){
+    const promptEvent = state.install.deferredPrompt;
+    if (promptEvent && typeof promptEvent.prompt === 'function') {
+      promptEvent.prompt();
+      try { await promptEvent.userChoice; } catch (_) {}
+      state.install.deferredPrompt = null;
+      app.ui.renderAll();
+      return;
+    }
+    app.ui.toast('iPhone 可用分享功能加入主畫面；Android 可用瀏覽器「安裝 App」。', 'good');
+  };
+
+  app.runtime.openFeedback = function(){
+    app.ui.openFeedback();
+  };
+
   window.addEventListener('resize', () => {
     if (app.runtime.game && app.runtime.game.scale) app.runtime.game.scale.resize(window.innerWidth, window.innerHeight);
+  });
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    state.install.deferredPrompt = event;
+    state.install.supported = true;
+    app.ui.renderAll();
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -156,7 +185,9 @@
         )).catch(() => {});
       }
     }catch(_){}
+
     createGame();
+    state.overlay = 'title';
     app.ui.renderAll();
     await app.services.firebase.init();
     state.overlay = 'title';

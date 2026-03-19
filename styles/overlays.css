@@ -99,3 +99,18 @@
 @media (max-width: 900px){
   .hero-preview.compact{grid-template-columns:1fr}
 }
+
+
+.profile-setup-block{margin-top:.2rem}
+.name-input{
+  width:100%;
+  border:none;
+  outline:none;
+  padding:.95rem 1rem;
+  border-radius:18px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.15);
+  font-size:1rem;
+}
+.name-input::placeholder{color:rgba(255,255,255,.6)}

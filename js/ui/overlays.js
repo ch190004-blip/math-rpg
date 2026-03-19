@@ -252,16 +252,32 @@
     }
   }
 
+
   function renderTitle(){
     const root = document.getElementById('overlay-root');
     const authCopy = !state.authReady
       ? '<span class="loading-pulse"></span>'
-      : (state.user ? '已維持登入，可直接繼續冒險。' : '請先用 Google 登入。');
+      : (state.user ? '已維持登入，可以直接繼續冒險。' : '請先用 Google 登入。');
 
-    const profileLine = state.user
+    const profileBlock = state.user
       ? `<div class="status-item"><span>勇者</span><strong>${state.profile?.name || state.user.displayName || '旅人'}</strong></div>
          <div class="status-item"><span>進度</span><strong>Lv.${state.profile?.level || 1} ・ ${state.profile?.coins || 0} G</strong></div>`
       : `<div class="status-item"><span>登入狀態</span><strong>尚未登入</strong></div>`;
+
+    const installBtn = app.utils.isMobile()
+      ? `<button class="secondary-btn" id="install-btn">${state.install.deferredPrompt ? '下載 / 安裝 App' : '加入主畫面'}</button>`
+      : '';
+
+    const nameSetup = state.profileSetup.required ? `
+      <div class="menu-block profile-setup-block">
+        <div class="menu-title">第一次登入設定名稱</div>
+        <div class="menu-copy">這個名稱會顯示在右下角狀態列與 BUG 回饋中。</div>
+        <div class="button-stack">
+          <input class="name-input" id="profile-name-input" maxlength="12" placeholder="輸入勇者名稱（最多 12 字）" value="${app.utils.safeHtml(state.profileSetup.pendingName || state.profile?.name || '').replace(/"/g, '&quot;')}">
+          <button class="primary-btn" id="save-profile-name-btn">儲存名稱</button>
+        </div>
+      </div>
+    ` : '';
 
     root.innerHTML = `
       <div class="overlay-screen">
@@ -272,30 +288,30 @@
                 <div class="big-logo">∑</div>
                 <div>
                   <div class="badge">單一網址・${state.build || window.__MATH_RPG_BUILD__ || 'beta'}</div>
-                  <h1 class="hero-title">Math RPG<br>六塔封測入口</h1>
+                  <h1 class="hero-title">Math RPG<br>世界入口</h1>
                 </div>
               </div>
 
               <p class="hero-sub compact">
-                Google 登入後直接進入數學中心。重新整理會回到入口畫面，但登入狀態保留。
+                Google 登入後進入數學中心，從六座學期之塔探索章節原野與史萊姆戰鬥。重新整理只會回到入口，但登入狀態會保留。
               </p>
 
               <div class="hero-preview compact">
                 <article class="preview-box">
                   <h4>目前上架</h4>
-                  <p>七上 1-1 負數與數線<br>七下 1-1 二元一次方程式<br>八下 1-1 等差數列</p>
+                  <p>七上 1-1 負數與數線、七下 1-1 二元一次方程式、八下 1-1 等差數列。</p>
                 </article>
                 <article class="preview-box">
-                  <h4>這版更新</h4>
-                  <p>修正快取跳舊版、六塔位置重排、七上之塔 3 層動線、右上選單與全場景回饋入口。</p>
+                  <h4>版本更新</h4>
+                  <p>修正六塔進場、優化七上之塔動線、加入首頁 / 登出選單、全場景 BUG 回饋、首次登入自訂名稱。</p>
                 </article>
                 <article class="preview-box">
-                  <h4>目前規則</h4>
-                  <p>固定單一 index.html<br>塔內每章一層樓<br>戰鬥答對領金幣後回原野</p>
+                  <h4>封測提醒</h4>
+                  <p>手機可加入主畫面；未來可再接 Capacitor / App Store / Google Play 包裝。</p>
                 </article>
               </div>
             </div>
-            <div class="tiny">封測提醒：若你曾以桌面捷徑開過舊版，這版已加入版本標記與快取清理，但建議改從新資料夾重新開啟。</div>
+            <div class="tiny">Build ${state.build || window.__MATH_RPG_BUILD__ || 'beta'}｜固定單一 index.html 入口</div>
           </section>
 
           <aside class="menu-card soft-card">
@@ -304,22 +320,23 @@
               <div class="menu-copy">${authCopy}</div>
               <div class="button-stack">
                 ${state.user
-                  ? '<button class="primary-btn" id="enter-world-btn">進入大廳</button>'
+                  ? '<button class="primary-btn" id="enter-world-btn">進入數學中心</button>'
                   : '<button class="primary-btn login-btn" id="login-btn"><span class="google-mark">G</span><span>Google 登入</span></button>'}
+                ${installBtn}
                 <button class="secondary-btn" id="offline-btn">離線試玩</button>
               </div>
             </div>
 
             <div class="menu-block">
-              <div class="menu-title">版本更新</div>
+              <div class="menu-title">版本摘要</div>
               <div class="status-list">
                 <div class="status-item"><span>Build</span><strong>${state.build || window.__MATH_RPG_BUILD__ || 'beta'}</strong></div>
-                <div class="status-item"><span>首頁</span><strong>改回分頁式精簡入口</strong></div>
-                <div class="status-item"><span>右上角</span><strong>選單含回首頁 / 登出 / 回饋</strong></div>
-                <div class="status-item"><span>快取</span><strong>加上版本保護與清理</strong></div>
-                ${profileLine}
+                <div class="status-item"><span>首頁</span><strong>精簡分頁式入口</strong></div>
+                <div class="status-item"><span>選單</span><strong>回首頁 / BUG 回饋 / 登出</strong></div>
+                ${profileBlock}
               </div>
             </div>
+            ${nameSetup}
           </aside>
         </div>
       </div>
@@ -328,16 +345,56 @@
     const loginBtn = document.getElementById('login-btn');
     const enterBtn = document.getElementById('enter-world-btn');
     const offlineBtn = document.getElementById('offline-btn');
+    const installBtnEl = document.getElementById('install-btn');
+    const saveNameBtn = document.getElementById('save-profile-name-btn');
+    const nameInput = document.getElementById('profile-name-input');
 
     if (loginBtn) loginBtn.onclick = () => app.services.firebase.signIn();
-    if (enterBtn) enterBtn.onclick = () => app.runtime.enterWorld();
+    if (enterBtn) enterBtn.onclick = () => {
+      if (state.profileSetup.required) {
+        app.ui.toast('先設定勇者名稱，再進入世界。', 'bad');
+        return;
+      }
+      app.runtime.enterWorld();
+    };
     if (offlineBtn) offlineBtn.onclick = () => {
       state.user = { uid:'offline-user', displayName:'離線旅人', email:'' };
       state.profile = app.services.firebase.getLocalProfile();
       state.authReady = true;
       app.ui.toast('已進入離線試玩', 'good');
-      app.runtime.enterWorld();
+      app.ui.maybePromptProfileName();
+      app.ui.renderAll();
     };
+    if (installBtnEl) installBtnEl.onclick = () => app.runtime.askInstall();
+
+    if (nameInput) {
+      nameInput.oninput = () => {
+        state.profileSetup.pendingName = nameInput.value;
+      };
+      nameInput.onkeydown = (event) => {
+        if (event.key === 'Enter' && saveNameBtn) saveNameBtn.click();
+      };
+    }
+
+    if (saveNameBtn) {
+      saveNameBtn.onclick = async () => {
+        const value = app.utils.sanitizeName(state.profileSetup.pendingName || '');
+        if (!value) {
+          app.ui.toast('請輸入 1～12 字的勇者名稱', 'bad');
+          if (nameInput) nameInput.focus();
+          return;
+        }
+        try{
+          await app.services.firebase.updateProfileName(value);
+          state.profileSetup.required = false;
+          app.ui.toast('勇者名稱已儲存', 'good');
+          app.ui.renderAll();
+        }catch(error){
+          console.error(error);
+          app.ui.toast('名稱儲存失敗，請稍後再試', 'bad');
+        }
+      };
+    }
   }
 
 
@@ -399,7 +456,7 @@
             <div class="answer-row">
               <div>
                 <label for="battle-answer">輸入答案</label>
-                <input id="battle-answer" class="answer-input" autocomplete="off" placeholder="${q.placeholder || '請輸入答案'}" />
+                <input id="battle-answer" class="answer-input" autocomplete="off" inputmode="${q.inputMode === 'numeric' ? 'numeric' : 'text'}" placeholder="${q.placeholder || '請輸入答案'}" />
               </div>
               <div class="footer-actions right-actions">
                 <button class="primary-btn" id="submit-answer-btn">作答</button>
@@ -441,6 +498,16 @@
     }
     stopBattleTimer();
     document.getElementById('overlay-root').innerHTML = '';
+  };
+
+
+  app.ui.maybePromptProfileName = function(){
+    const profile = state.profile || {};
+    const required = !!(state.user && !profile.customNameSet);
+    state.profileSetup.required = required;
+    if (!state.profileSetup.pendingName) {
+      state.profileSetup.pendingName = profile.name || state.user?.displayName || '';
+    }
   };
 
   app.ui.renderAll = function(){

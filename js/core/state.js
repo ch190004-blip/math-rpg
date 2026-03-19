@@ -3,7 +3,7 @@
     authReady: false,
     firebaseReady: true,
     user: null,
-    profile: { name: '旅人', email: '', level: 1, exp: 0, coins: 100 },
+    profile: { name: '旅人', email: '', level: 1, exp: 0, coins: 100, avatarSkin: {} },
     sceneKey: 'LobbyScene',
     overlay: 'title',
     modal: 'none',
@@ -39,7 +39,16 @@
       draft: null,
       submitting: false
     },
+    install: {
+      deferredPrompt: null,
+      supported: false
+    },
+    profileSetup: {
+      required: false,
+      pendingName: ''
+    },
     uiMenuOpen: false,
+    transitioning: false,
     build: window.__MATH_RPG_BUILD__ || 'beta'
   };
 
